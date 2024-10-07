@@ -7,7 +7,7 @@ import os
 BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000")
 AUTH = (
     os.environ.get("MM_CLOUDNET_USERNAME", "admin"),
-    os.environ.get("MM_CLOUDNET_USERNAME", "admin"),
+    os.environ.get("MM_CLOUDNET_PASSWORD", "admin"),
 )
 
 
