@@ -2,9 +2,13 @@ import datetime
 import hashlib
 from pathlib import Path
 import requests
+import os
 
-BASE_URL = "http://localhost:3000"
-AUTH = ("admin", "admin")
+BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000")
+AUTH = (
+    os.environ.get("MM_CLOUDNET_USERNAME", "admin"),
+    os.environ.get("MM_CLOUDNET_USERNAME", "admin"),
+)
 
 
 def get_sites() -> list[dict]:
