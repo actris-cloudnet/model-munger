@@ -5,6 +5,9 @@ import numpy as np
 EARTH_RADIUS: Final = 6_371_229
 "Radius of the Earth (m) as assumed in ECMWF IFS"
 
+G: Final = 9.80665
+"Earth's gravitational acceleration (m s-2)"
+
 MW_RATIO: Final = 0.62198
 "Ratio of the molecular weight of water vapor to dry air"
 
@@ -51,8 +54,8 @@ def calc_vertical_wind(
     Returns:
         Vertical wind (m s-1)
     """
-    dz = np.diff(height, prepend=0)
-    dp = np.diff(pressure, prepend=sfc_pressure)
+    dz = np.diff(height, prepend=0, axis=1)
+    dp = np.diff(pressure, prepend=sfc_pressure[:, np.newaxis], axis=1)
     return omega * dz / dp
 
 

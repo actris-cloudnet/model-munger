@@ -45,7 +45,7 @@ path = "src/model_munger/version.py"
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["netCDF4.*", "pygrib.*"]
+module = ["pygrib.*", "cftime.*"]
 ignore_missing_imports = true
 
 [tool.release-version]
