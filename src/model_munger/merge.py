@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import ma
+from model_munger.metadata import ATTRIBUTES
 from model_munger.model import Model
 
 
@@ -20,9 +21,9 @@ def merge_models(models: list[Model]) -> Model:
     tinde = np.concatenate(tinde)
     utime, uindex = np.unique(time, return_index=True)
     data = {
-        "latitude": models[0].data["latitude"],
-        "longitude": models[0].data["longitude"],
-        "model_level": models[0].data["model_level"],
+        key: values
+        for key, values in models[0].data.items()
+        if key != "time" and "time" not in ATTRIBUTES[key].dimensions
     }
     for key in models[0].data.keys():
         if key in data:

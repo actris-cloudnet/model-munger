@@ -100,7 +100,7 @@ class Model:
             if "soil_depth" in self.data:
                 nc.createDimension("soil_level", self.data["soil_depth"].shape[1])
 
-            ncvar = nc.createVariable("time", "f4", "time")
+            ncvar = nc.createVariable("time", "f4", "time", zlib=True)
             ncvar.long_name = "Hours UTC"
             ncvar.units = f"hours since {date:%Y-%m-%d} 00:00:00 +00:00"
             ncvar.standard_name = "time"
@@ -118,7 +118,7 @@ class Model:
                     data_type = "f4"
                 fill_value = netCDF4.default_fillvals[data_type]
                 ncvar = nc.createVariable(
-                    key, data_type, meta.dimensions, fill_value=fill_value
+                    key, data_type, meta.dimensions, zlib=True, fill_value=fill_value
                 )
                 ncvar.units = meta.units
                 ncvar.long_name = meta.long_name

@@ -1,3 +1,4 @@
+from os import PathLike
 from pathlib import Path
 
 import netCDF4
@@ -46,7 +47,7 @@ units_map = {
 }
 
 
-def read_arpege(file: Path, location: Location) -> Model:
+def read_arpege(file: str | PathLike, location: Location) -> Model:
     with netCDF4.Dataset(file) as nc:
         data = {}
         units = {}
@@ -77,7 +78,9 @@ def read_arpege(file: Path, location: Location) -> Model:
 
         data["soil_depth"] = np.tile(data["soil_depth"], (len(data["time"]), 1))
 
-        history = [f"{nc.NetCdf_creation_date} - {file.name} created by {nc.creator}"]
+        history = [
+            f"{nc.NetCdf_creation_date} - {Path(file).name} created by {nc.creator}"
+        ]
 
         return Model(ARPEGE, location, data, units, history=history)
 

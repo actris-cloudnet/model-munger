@@ -6,7 +6,7 @@ import requests
 
 
 def download_ecmwf(
-    date: datetime.date, run: Literal[0, 6, 12, 18], directory: Path
+    date: datetime.date, run: Literal[0, 6, 12, 18], steps: list[int], directory: Path
 ) -> list[Path]:
     """Download ECMWF high-resolution forecast model (open data subset).
 
@@ -22,8 +22,8 @@ def download_ecmwf(
     run_str = str(run).zfill(2)
     stream = "oper" if run in (0, 12) else "scda"
     paths = []
-    for hour in range(run, 25, 3):
-        filename = f"{date_str}{run_str}0000-{hour}h-{stream}-fc.grib2"
+    for step in steps:
+        filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
         path = directory / filename
         paths.append(path)
         if path.exists():

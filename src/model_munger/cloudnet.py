@@ -22,7 +22,7 @@ def get_sites() -> list[dict]:
 
 
 def submit_file(filename: Path, site: dict, date: datetime.date):
-    print(f"Submit {filename}")
+    print(f"Submit {filename.name}")
     md5_hash = hashlib.md5()
     with open(filename, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
