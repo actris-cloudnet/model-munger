@@ -30,6 +30,8 @@ keymap = {
 
 
 def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
+    """Read ECMWF open data netCDF generated using model-munger."""
+
     with netCDF4.Dataset(file) as nc:
         data = {}
         units = {}

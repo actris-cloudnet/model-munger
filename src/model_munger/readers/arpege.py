@@ -48,6 +48,8 @@ units_map = {
 
 
 def read_arpege(file: str | PathLike, location: Location) -> Model:
+    """Read ARPEGE netCDF generated using lfa2nc."""
+
     with netCDF4.Dataset(file) as nc:
         data = {}
         units = {}

@@ -42,6 +42,18 @@ def extract_profiles(
     sites: list[dict],
     output_directory: str | PathLike,
 ) -> list[Path]:
+    """Extract profiles from ECMWF open data GRIB files and output them in
+    netCDF files.
+
+    Args:
+        input_files: List of GRIB files from a single run.
+        sites: List of sites from Cloudnet API.
+        output_directory: Directory where output files are written.
+
+    Returns:
+        List of output files.
+    """
+
     pressures = None
     n_soil_levels = 0
 
