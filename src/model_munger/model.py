@@ -64,6 +64,9 @@ class Model:
             self.data["rh"] = calc_relative_humidity(
                 self.data["pressure"], self.data["temperature"], self.data["q"]
             )
+        if "cloud_fraction" in self.data:
+            frac = self.data["cloud_fraction"]
+            frac[frac < 1e-4] = 0
 
     def screen_time(self, date: datetime.date):
         next_date = date + datetime.timedelta(days=1)
