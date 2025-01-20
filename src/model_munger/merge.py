@@ -1,5 +1,6 @@
 import numpy as np
 from numpy import ma
+
 from model_munger.metadata import ATTRIBUTES
 from model_munger.model import Model
 

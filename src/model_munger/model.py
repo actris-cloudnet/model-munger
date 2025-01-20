@@ -1,12 +1,13 @@
-from dataclasses import dataclass
-from datetime import timedelta
 import datetime
 import logging
+from dataclasses import dataclass
+from datetime import timedelta
 from os import PathLike
 
 import netCDF4
 import numpy as np
 from cftime import date2num
+
 from model_munger.metadata import ATTRIBUTES
 from model_munger.utils import calc_relative_humidity, calc_vertical_wind
 from model_munger.version import __version__

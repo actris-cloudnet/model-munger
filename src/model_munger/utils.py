@@ -1,6 +1,7 @@
 from typing import Final
-import numpy.typing as npt
+
 import numpy as np
+import numpy.typing as npt
 
 EARTH_RADIUS: Final = 6_371_229
 "Radius of the Earth (m) as assumed in ECMWF IFS"

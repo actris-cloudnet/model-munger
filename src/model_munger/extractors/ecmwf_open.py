@@ -1,14 +1,16 @@
-from collections import defaultdict
 import datetime
+import re
+from collections import defaultdict
+from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-import re
 from typing import Iterable
-import pygrib
+
+import netCDF4
 import numpy as np
 import numpy.typing as npt
-from dataclasses import dataclass
-import netCDF4
+import pygrib
+
 from model_munger.utils import (
     EARTH_RADIUS,
     HPA_TO_PA,

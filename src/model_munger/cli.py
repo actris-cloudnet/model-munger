@@ -1,8 +1,7 @@
 import argparse
 import datetime
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 from model_munger.cloudnet import get_sites, submit_file
 from model_munger.download import download_ecmwf

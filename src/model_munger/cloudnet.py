@@ -1,8 +1,9 @@
 import datetime
 import hashlib
-from pathlib import Path
-import requests
 import os
+from pathlib import Path
+
+import requests
 
 BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000")
 AUTH = (

@@ -2,13 +2,12 @@ from os import PathLike
 from pathlib import Path
 
 import netCDF4
-from cftime import num2pydate
 import numpy as np
+from cftime import num2pydate
 from numpy import ma
 
 from model_munger.model import Location, Model, ModelType
 from model_munger.utils import G, calc_geometric_height
-
 
 keymap = {
     "cc": "cloud_fraction",

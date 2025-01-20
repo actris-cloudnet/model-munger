@@ -1,13 +1,12 @@
-from os import PathLike
 import re
+from os import PathLike
 
 import netCDF4
-from cftime import num2pydate
 import numpy as np
+from cftime import num2pydate
 
 from model_munger.model import Location, Model, ModelType
 from model_munger.utils import calc_geometric_height
-
 
 keymap = {
     "d2m": "sfc_dewpoint_temp_2m",
