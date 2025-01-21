@@ -10,6 +10,7 @@ import netCDF4
 import numpy as np
 import numpy.typing as npt
 import pygrib
+from numpy import ma
 
 from model_munger.utils import (
     EARTH_RADIUS,
@@ -91,9 +92,6 @@ def extract_profiles(
     start_dt = None
 
     for i, input_file in enumerate(input_files):
-        # if i > 1:
-        #     break
-
         path = Path(input_file)
 
         m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", path.name)
@@ -129,7 +127,7 @@ def extract_profiles(
                 for i in range(len(lat)):
                     output[i]["latitude"] = lat[i]
                     output[i]["longitude"] = lon[i]
-                    output[i]["horizontal_resolution"] = np.around(res * M_TO_KM)
+                    output[i]["horizontal_resolution"] = np.round(res * M_TO_KM)
             units[grb.cfVarName] = grb.units
             long_names[grb.cfVarName] = grb.name
             parameters[grb.cfVarName] = grb.paramId
@@ -139,7 +137,7 @@ def extract_profiles(
             if grb.levtype == "sfc":
                 dimensions[grb.cfVarName] = ("time",)
                 for i in range(len(lat)):
-                    output[i][grb.cfVarName].append(values[i])
+                    output[i][grb.cfVarName].append(values[i : i + 1])
             elif grb.levtype == "pl":
                 dimensions[grb.cfVarName] = ("time", "level")
                 pressure = grb.level
@@ -155,13 +153,11 @@ def extract_profiles(
                 soil_levels.append(Level(grb.level, grb.cfVarName, values))
 
         if pressures is None:
-            pressures = list(sorted(set(level.level for level in levels), reverse=True))
+            pressures = sorted({level.level for level in levels}, reverse=True)
+        variables = {level.variable for level in levels}
 
         for j, data in enumerate(output):
-            profile: dict = {
-                v: np.full(len(pressures), np.nan)
-                for v in [level.variable for level in levels]
-            }
+            profile = {v: ma.masked_all(len(pressures)) for v in variables}
             for level in levels:
                 pressure_idx = pressures.index(level.level)
                 profile[level.variable][pressure_idx] = level.values[j]
@@ -171,12 +167,6 @@ def extract_profiles(
                 profile[level.variable][level.level - 1] = level.values[j]
             for key, values in profile.items():
                 data[key].append(values)
-
-    # from numpy import ma
-    # for item in output:
-    #     for key in item:
-    #         if isinstance(item[key], list) and item[key][0]
-    #             item[key] = ma.concatenate(item[key])
 
     assert pressures is not None
 
@@ -218,10 +208,11 @@ def extract_profiles(
             ncvar[:] = pressures
 
             for key, values in data.items():
-                dtype = "f4"  # TODO???
-                fill_value = netCDF4.default_fillvals[dtype]
+                values = ma.array(values)
+                data_type = values.dtype.str[1:]
+                fill_value = netCDF4.default_fillvals[data_type]
                 ncvar = nc.createVariable(
-                    key, dtype, dimensions[key], zlib=True, fill_value=fill_value
+                    key, data_type, dimensions[key], zlib=True, fill_value=fill_value
                 )
                 ncvar.units = units[key]
                 ncvar.long_name = long_names[key]
@@ -230,7 +221,7 @@ def extract_profiles(
                 if key in parameters:
                     ncvar.param_id = parameters[key]
                 if dimensions[key] == ("time",) and len(values) == 1:
-                    values = np.repeat(values, len(time))
+                    values = ma.repeat(values, len(time))
                 ncvar[:] = values
 
     return output_paths
