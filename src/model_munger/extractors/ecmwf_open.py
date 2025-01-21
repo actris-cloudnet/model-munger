@@ -113,44 +113,43 @@ def extract_profiles(
         hour = int(m[7])
         time.append(hour)
 
-        print(f"Opening {path}")
-        grbs = pygrib.open(path)
-
         levels = []
         soil_levels = []
 
-        for grb in grbs:
-            if lat is None:
-                lat, lon, lat_idx, lon_idx, res = _find_closest_gridpoints(
-                    grb, latitudes, longitudes
-                )
-                for i in range(len(lat)):
-                    output[i]["latitude"] = lat[i]
-                    output[i]["longitude"] = lon[i]
-                    output[i]["horizontal_resolution"] = np.round(res * M_TO_KM)
-            units[grb.cfVarName] = grb.units
-            long_names[grb.cfVarName] = grb.name
-            parameters[grb.cfVarName] = grb.paramId
-            if "cfName" in grb.keys() and grb.cfName != "unknown":
-                standard_names[grb.cfVarName] = grb.cfName
-            values = grb.values[(lat_idx, lon_idx)]
-            if grb.levtype == "sfc":
-                dimensions[grb.cfVarName] = ("time",)
-                for i in range(len(lat)):
-                    output[i][grb.cfVarName].append(values[i : i + 1])
-            elif grb.levtype == "pl":
-                dimensions[grb.cfVarName] = ("time", "level")
-                pressure = grb.level
-                if grb.pressureUnits == "hPa":
-                    pressure *= HPA_TO_PA
-                elif grb.pressureUnits != "Pa":
-                    raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
-                levels.append(Level(pressure, grb.cfVarName, values))
-            elif grb.levtype == "sol":
-                dimensions[grb.cfVarName] = ("time", "soil_level")
-                if grb.level > n_soil_levels:
-                    n_soil_levels = grb.level
-                soil_levels.append(Level(grb.level, grb.cfVarName, values))
+        print(f"Opening {path}")
+        with pygrib.open(path) as grbs:
+            for grb in grbs:
+                if lat is None:
+                    lat, lon, lat_idx, lon_idx, res = _find_closest_gridpoints(
+                        grb, latitudes, longitudes
+                    )
+                    for i in range(len(lat)):
+                        output[i]["latitude"] = lat[i]
+                        output[i]["longitude"] = lon[i]
+                        output[i]["horizontal_resolution"] = np.round(res * M_TO_KM)
+                units[grb.cfVarName] = grb.units
+                long_names[grb.cfVarName] = grb.name
+                parameters[grb.cfVarName] = grb.paramId
+                if "cfName" in grb.keys() and grb.cfName != "unknown":
+                    standard_names[grb.cfVarName] = grb.cfName
+                values = grb.values[(lat_idx, lon_idx)]
+                if grb.levtype == "sfc":
+                    dimensions[grb.cfVarName] = ("time",)
+                    for i in range(len(lat)):
+                        output[i][grb.cfVarName].append(values[i : i + 1])
+                elif grb.levtype == "pl":
+                    dimensions[grb.cfVarName] = ("time", "level")
+                    pressure = grb.level
+                    if grb.pressureUnits == "hPa":
+                        pressure *= HPA_TO_PA
+                    elif grb.pressureUnits != "Pa":
+                        raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
+                    levels.append(Level(pressure, grb.cfVarName, values))
+                elif grb.levtype == "sol":
+                    dimensions[grb.cfVarName] = ("time", "soil_level")
+                    if grb.level > n_soil_levels:
+                        n_soil_levels = grb.level
+                    soil_levels.append(Level(grb.level, grb.cfVarName, values))
 
         if pressures is None:
             pressures = sorted({level.level for level in levels}, reverse=True)
