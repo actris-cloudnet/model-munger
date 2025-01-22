@@ -7,35 +7,53 @@ from model_munger.model import Model
 
 def merge_models(models: list[Model]) -> Model:
     times = []
-    index = []
-    tinde = []
-    ordered_models = sorted(
-        enumerate(models), key=lambda item: item[1].data["time"][0], reverse=True
-    )
-    for i, model in ordered_models:
+    ftimes = []
+    mindices = []
+    tindices = []
+    for i, model in enumerate(models):
         time = model.data["time"]
+        ftime = model.data["forecast_time"]
         times.append(time)
-        index.append(np.full_like(time, i))
-        tinde.append(np.arange(len(time)))
+        ftimes.append(ftime)
+        mindices.append(np.full_like(time, i))
+        tindices.append(np.arange(len(time)))
     time = np.concatenate(times)
-    index = np.concatenate(index)
-    tinde = np.concatenate(tinde)
+    ftime = np.concatenate(ftimes)
+    mindex = np.concatenate(mindices)
+    tindex = np.concatenate(tindices)
+
+    # Sort by forecast time.
+    findex = np.argsort(ftime)
+    time = time[findex]
+    ftime = ftime[findex]
+    mindex = mindex[findex]
+    tindex = tindex[findex]
+
+    # Sort and find unique times while keeping the smallest forecast time.
     utime, uindex = np.unique(time, return_index=True)
+    mindex = mindex[uindex]
+    tindex = tindex[uindex]
+
+    # Initialize merged model with common scalar and 1D data.
     data = {
         key: values
         for key, values in models[0].data.items()
         if key != "time" and "time" not in ATTRIBUTES[key].dimensions
     }
+
+    # Combine 2D data.
     for key in models[0].data.keys():
         if key in data:
             continue
         values = []
-        for i, t in zip(index[uindex], tinde[uindex]):
+        for i, t in zip(mindex, tindex):
             values.append(models[i].data[key][t : t + 1])
         data[key] = ma.concatenate(values)
+
+    used_models = [models[i] for i in np.unique(mindex)]
     return Model(
         models[0].type,
         models[0].location,
         data,
-        history=[line for m in models for line in m.history],
+        history=[line for m in used_models for line in m.history],
     )

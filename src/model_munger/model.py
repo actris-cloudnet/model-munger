@@ -55,14 +55,14 @@ class Model:
             self.data["forecast_time"] = np.array(
                 [(t - init_time) / hour for t in self.data["time"]]
             )
-        if "wwind" not in self.data:
+        if "wwind" not in self.data and "omega" in self.data:
             self.data["wwind"] = calc_vertical_wind(
                 self.data["height"],
                 self.data["sfc_pressure"],
                 self.data["pressure"],
                 self.data["omega"],
             )
-        if "rh" not in self.data:
+        if "rh" not in self.data and "q" in self.data:
             self.data["rh"] = calc_relative_humidity(
                 self.data["pressure"], self.data["temperature"], self.data["q"]
             )
