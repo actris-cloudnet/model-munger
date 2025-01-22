@@ -6,6 +6,7 @@ from os import PathLike
 
 import netCDF4
 import numpy as np
+import numpy.typing as npt
 from cftime import date2num
 
 from model_munger.metadata import ATTRIBUTES
@@ -70,10 +71,21 @@ class Model:
             frac[frac < 1e-4] = 0
 
     def screen_time(self, date: datetime.date):
+        """Screen time to given date (0th and 24th hour included)."""
         next_date = date + datetime.timedelta(days=1)
         t_min = datetime.datetime.combine(date, datetime.time())
         t_max = datetime.datetime.combine(next_date, datetime.time())
-        mask = (self.data["time"] >= t_min) & (self.data["time"] <= t_max)
+        time = self.data["time"]
+        mask = (time >= t_min) & (time <= t_max)
+        self._screen_data(mask)
+
+    def screen_forecast_time(self, t_min: int, t_max: int):
+        """Screen forecast time to given range (inclusive)."""
+        time = self.data["forecast_time"]
+        mask = (time >= t_min) & (time <= t_max)
+        self._screen_data(mask)
+
+    def _screen_data(self, mask: npt.NDArray[np.bool]):
         for key, values in self.data.items():
             if key == "time" or "time" in ATTRIBUTES[key].dimensions:
                 self.data[key] = values[mask]
