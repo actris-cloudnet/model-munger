@@ -9,16 +9,23 @@ from model_munger.model import Location, Model, ModelType
 from model_munger.utils import calc_geometric_height
 
 keymap = {
+    "asn": "sfc_albedo_snow",
     "d2m": "sfc_dewpoint_temp_2m",
+    "fg10": "sfc_wind_gust_10m",
     "latitude": "latitude",
     "longitude": "longitude",
+    "lsm": "sfc_land_cover",
     "msl": "sfc_pressure_amsl",
     "pressure": "pressure",
     "q": "q",
+    "skt": "sfc_skin_temp",
     "sot": "soil_temperature",
     "sp": "sfc_pressure",
     "t": "temperature",
     "t2m": "sfc_temp_2m",
+    "tcw": "total_column_water",
+    "tcwv": "total_column_water_vapour",
+    "tprate": "sfc_ls_rainrate",
     "u": "uwind",
     "u10": "sfc_wind_u_10m",
     "v": "vwind",
@@ -58,7 +65,7 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
 
 
 def _normalize_units(units: str) -> str:
-    if units == "kg kg**-1":
+    if units in ("kg kg**-1", "(0 - 1)"):
         return "1"
     return re.sub(r"\*\*(-?\d+)", r"\1", units)
 

@@ -529,19 +529,16 @@ ATTRIBUTES = {
     "sfc_ls_rainrate": Metadata(
         units="kg m-2 s-1",
         long_name="Large-scale rainfall intensity",
-        standard_name="large_scale_rainfall_intensity",
         dimensions=("time",),
     ),
     "sfc_ls_snowrate": Metadata(
         units="kg m-2 s-1",
         long_name="Large-scale snowfall intensity",
-        standard_name="large_scale_snowfall_intensity",
         dimensions=("time",),
     ),
     "sfc_ls_graupelrate": Metadata(
         units="kg m-2 s-1",
         long_name="Large-scale graupel intensity",
-        standard_name="large_scale_graupel_intensity",
         dimensions=("time",),
     ),
     "sfc_conv_rain": Metadata(
