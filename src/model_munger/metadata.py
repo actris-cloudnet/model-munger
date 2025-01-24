@@ -293,12 +293,12 @@ ATTRIBUTES = {
         units="W m-2",
         long_name="Sensible heat flux",
         dimensions=("time", "level"),
-    ), 
+    ),
     "flx_turb_moist": Metadata(
         units="kg m-2 s-1",
         long_name="Turbulent moisture heat flux",
         dimensions=("time", "level"),
-    ), 
+    ),
     "flx_ls_rain": Metadata(
         units="kg m-2 s-1",
         long_name="Large-scale rainfall flux",
@@ -390,7 +390,7 @@ ATTRIBUTES = {
         units="W m-2",
         long_name="Surface diffuse upwelling shortwave flux",
         dimensions=("time",),
-    ),    
+    ),
     "sfc_up_lw": Metadata(
         units="W m-2",
         long_name="Surface upwelling longwave flux",
@@ -453,7 +453,7 @@ ATTRIBUTES = {
         units="W m-2",
         long_name="Top of atmosphere net clear sky downward shortwave flux",
         dimensions=("time",),
-    ),    
+    ),
     "toa_net_lw": Metadata(
         units="W m-2",
         long_name="Top of atmosphere net downward longwave flux",
@@ -641,7 +641,7 @@ ATTRIBUTES = {
         units="1",
         long_name="Surface albedo (shortwave diffuse)",
         dimensions=("time",),
-    ),    
+    ),
     "sfc_temp": Metadata(
         units="K", long_name="Surface temperature", dimensions=("time",)
     ),
@@ -650,23 +650,7 @@ ATTRIBUTES = {
     ),
     "sfc_temp_2m": Metadata(
         units="K", long_name="Temperature at 2m", dimensions=("time",)
-    ),   case 'total_column_water_vapour'
-    attribute.total_column_water_vapour = create_attributes(sfc_dims, 'Total column water vapour', rain_units, missing_value);
-    attribute.total_column_water_vapour.standard_name = 'lwe_thickness_of_atmosphere_water_vapor_content' ;
-   case 'total_column_water'
-    attribute.total_column_water = create_attributes(sfc_dims, 'Total column water', rain_units, missing_value);
-   case 'total_column_liquid'
-    attribute.total_column_liquid = create_attributes(sfc_dims, 'Total column liquid water', rain_units, missing_value);
-   case 'total_column_liquid'
-    attribute.total_column_sc_liquid = create_attributes(sfc_dims, 'Total column supercooled liquid water', rain_units, missing_value);
-
-   case 'sfc_qs'
-    attribute.sfc_qs = create_attributes(ml_dims, 'Gridbox-mean snow mixing ratio at surface', '1', missing_value);
-    attribute.sfc_qs.standard_name = 'mass_fraction_of_snow_at_surface';
-   case 'sfc_qg'
-    attribute.sfc_qg = create_attributes(ml_dims, 'Gridbox-mean graupel mixing ratio at surface', '1', missing_value);
-    attribute.sfc_qg.standard_name = 'mass_fraction_of_graupel_at surface';
-
+    ),
     "sfc_dewpoint_temp_2m": Metadata(
         units="K", long_name="Dew point temperature at 2m", dimensions=("time",)
     ),
@@ -691,7 +675,7 @@ ATTRIBUTES = {
     "sfc_roughness_length": Metadata(
         units="m", long_name="Surface roughness length", dimensions=("time",)
     ),
-    "sfc_drag_coefficent": Metadata(
+    "sfc_drag_coefficient": Metadata(
         units="1", long_name="Surface drag coefficient", dimensions=("time",)
     ),
     "sfc_temp_snow": Metadata(
@@ -721,7 +705,7 @@ ATTRIBUTES = {
         long_name="Meridional wind at 10 m",
         units="m s-1",
         dimensions=("time",),
-    ),   
+    ),
     "sfc_wind_gust_10m": Metadata(
         long_name="Wind gust at 10 m",
         units="m s-1",
@@ -815,13 +799,11 @@ ATTRIBUTES = {
     "sfc_qs": Metadata(
         units="1",
         long_name="Gridbox-mean snow mixing ratio at surface",
-        standard_name="mass_fraction_of_snow_at_surface",
         dimensions=("time",),
     ),
-    "sfc_qq": Metadata(
+    "sfc_qg": Metadata(
         units="1",
         long_name="Gridbox-mean graupel mixing ratio at surface",
-        standard_name="mass_fraction_of_grapuel_at_surface",
         dimensions=("time",),
     ),
     "total_column_water_vapour": Metadata(
