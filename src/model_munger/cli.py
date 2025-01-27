@@ -18,6 +18,7 @@ def main():
     )
     parser.add_argument("-r", "--run", type=int, default=0)
     parser.add_argument("-s", "--sites", type=lambda x: x.split(","))
+    parser.add_argument("--source", choices=["ecmwf", "aws"], default="ecmwf")
     parser.add_argument("--submit", action="store_true")
 
     args = parser.parse_args()
@@ -34,7 +35,11 @@ def main():
     output_dir.mkdir(exist_ok=True)
 
     input_files = download_ecmwf(
-        args.date, run=args.run, steps=list(range(0, 90 + 1, 3)), directory=download_dir
+        args.date,
+        run=args.run,
+        steps=list(range(0, 90 + 1, 3)),
+        directory=download_dir,
+        source=args.source,
     )
     output_files = extract_profiles(input_files, sites, output_dir)
     if args.submit:

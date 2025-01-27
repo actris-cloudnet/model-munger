@@ -5,9 +5,18 @@ from typing import Literal
 
 import requests
 
+SOURCES = {
+    "ecmwf": "https://data.ecmwf.int/forecasts",
+    "aws": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
+}
+
 
 def download_ecmwf(
-    date: datetime.date, run: Literal[0, 6, 12, 18], steps: list[int], directory: Path
+    date: datetime.date,
+    run: Literal[0, 6, 12, 18],
+    steps: list[int],
+    directory: Path,
+    source: Literal["ecmwf", "aws"],
 ) -> list[Path]:
     """Download ECMWF high-resolution forecast model (open data subset).
 
@@ -23,13 +32,14 @@ def download_ecmwf(
     run_str = str(run).zfill(2)
     stream = "oper" if run in (0, 12) else "scda"
     paths = []
+    base_url = SOURCES[source]
     for step in steps:
         filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
         path = directory / filename
         paths.append(path)
         if path.exists():
             continue
-        url = f"https://data.ecmwf.int/forecasts/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
+        url = f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
         _download_file(url, path)
     return paths
 
