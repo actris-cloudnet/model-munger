@@ -43,6 +43,8 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
         units = {}
 
         for src, dst in keymap.items():
+            if src not in nc.variables:
+                continue
             var = nc[src]
             data[dst] = var[:]
             units[dst] = _normalize_units(var.units)
@@ -52,9 +54,10 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
 
         data["pressure"] = np.tile(data["pressure"], (len(data["time"]), 1))
 
-        soil_depth = [0.07, 0.21, 0.72, 1.89]
-        data["soil_depth"] = np.tile(soil_depth, (len(data["time"]), 1))
-        units["soil_depth"] = "m"
+        if "soil_temperature" in data or "soil_moisture" in data:
+            soil_depth = [0.07, 0.21, 0.72, 1.89]
+            data["soil_depth"] = np.tile(soil_depth, (len(data["time"]), 1))
+            units["soil_depth"] = "m"
 
         data["height"] = calc_geometric_height(nc["gh"][:])
         units["height"] = "m"
