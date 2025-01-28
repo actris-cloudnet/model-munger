@@ -51,6 +51,7 @@ ignore_missing_imports = true
 [tool.release-version]
 filename = "src/model_munger/version.py"
 pattern = ["__version__ = \"(?P<major>\\d+).(?P<minor>\\d+).(?P<patch>\\d+)\""]
+changelog = "CHANGELOG.md"
 
 [tool.ruff.lint]
 select = ["I"]
