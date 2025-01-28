@@ -13,17 +13,17 @@ def main():
     parser.add_argument(
         "-d",
         "--date",
-        type=datetime.date.fromisoformat,
+        type=parse_date,
         help="Fetch ECMWF open data for this date. Default is today.",
     )
     parser.add_argument(
         "--start",
-        type=datetime.date.fromisoformat,
+        type=parse_date,
         help="Fetch ECMWF open data starting from this date. Default is today.",
     )
     parser.add_argument(
         "--stop",
-        type=datetime.date.fromisoformat,
+        type=parse_date,
         help="Fetch ECMWF open data until this date. Default is today.",
     )
     parser.add_argument(
@@ -104,6 +104,14 @@ def main():
 
 def utctoday():
     return datetime.datetime.now(datetime.timezone.utc).date()
+
+
+def parse_date(value: str) -> datetime.date:
+    if value == "today":
+        return utctoday()
+    if value == "yesterday":
+        return utctoday() - datetime.timedelta(days=1)
+    return datetime.date.fromisoformat(value)
 
 
 if __name__ == "__main__":
