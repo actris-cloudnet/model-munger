@@ -29,7 +29,7 @@ def main():
     parser.add_argument(
         "-r",
         "--runs",
-        type=lambda x: map(int, x.split(",")),
+        type=lambda x: [int(y) for y in x.split(",")],
         default=[0],
         help="Comma-separated list of model runs to download.",
     )
