@@ -65,6 +65,9 @@ def _download_file_with_retry(url: str, out: Path):
 def _download_file(url: str, out: Path):
     try:
         pending_output = False
+        print_progress = sys.stdout.isatty()
+        if not print_progress:
+            print(f"Download {url}", file=sys.stderr)
         with requests.get(url, stream=True) as res:
             res.raise_for_status()
             total_bytes = res.headers.get("Content-Length")
@@ -77,14 +80,15 @@ def _download_file(url: str, out: Path):
                     for data in res.iter_content(chunk_size=4096):
                         dl_bytes += len(data)
                         f.write(data)
-                        percent = round(100 * dl_bytes / total_bytes_int)
-                        print(
-                            f"\r[{percent:3}%] {url}",
-                            end="",
-                            file=sys.stderr,
-                            flush=True,
-                        )
-                        pending_output = True
+                        if print_progress:
+                            percent = round(100 * dl_bytes / total_bytes_int)
+                            print(
+                                f"\r[{percent:3}%] {url}",
+                                end="",
+                                file=sys.stderr,
+                                flush=True,
+                            )
+                            pending_output = True
     finally:
         if pending_output:
             print(file=sys.stderr)
