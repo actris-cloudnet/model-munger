@@ -47,7 +47,11 @@ def merge_models(models: list[Model]) -> Model:
             continue
         values = []
         for i, t in zip(mindex, tindex):
-            values.append(models[i].data[key][t : t + 1])
+            if key in models[i].data:
+                values.append(models[i].data[key][t : t + 1])
+            else:
+                shape = (1,) + models[0].data[key].shape[1:]
+                values.append(ma.masked_all(shape))
         data[key] = ma.concatenate(values)
 
     used_models = [models[i] for i in np.unique(mindex)]
