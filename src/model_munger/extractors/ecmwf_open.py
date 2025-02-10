@@ -22,6 +22,7 @@ from model_munger.version import __version__
 
 @dataclass
 class Level:
+    time: int
     level: int
     variable: str
     values: npt.NDArray
@@ -57,9 +58,6 @@ def extract_profiles(
         List of output files.
     """
 
-    pressures = None
-    n_soil_levels = 0
-
     time = []
     output: list[dict] = [defaultdict(list) for site in sites]
     latitudes = np.array([site["latitude"] for site in sites])
@@ -90,8 +88,11 @@ def extract_profiles(
     parameters = {}
 
     start_dt = None
+    sfc_levels = []
+    pressure_levels = []
+    soil_levels = []
 
-    for i, input_file in enumerate(input_files):
+    for time_idx, input_file in enumerate(input_files):
         path = Path(input_file)
 
         m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", path.name)
@@ -113,9 +114,6 @@ def extract_profiles(
         hour = int(m[7])
         time.append(hour)
 
-        levels = []
-        soil_levels = []
-
         print(f"Opening {path}")
         with pygrib.open(path) as grbs:
             for grb in grbs:
@@ -123,10 +121,12 @@ def extract_profiles(
                     lat, lon, lat_idx, lon_idx, res = _find_closest_gridpoints(
                         grb, latitudes, longitudes
                     )
-                    for i in range(len(lat)):
-                        output[i]["latitude"] = lat[i]
-                        output[i]["longitude"] = lon[i]
-                        output[i]["horizontal_resolution"] = np.round(res * M_TO_KM)
+                    for output_idx in range(len(lat)):
+                        output[output_idx]["latitude"] = lat[output_idx]
+                        output[output_idx]["longitude"] = lon[output_idx]
+                        output[output_idx]["horizontal_resolution"] = np.round(
+                            res * M_TO_KM
+                        )
                 units[grb.cfVarName] = grb.units
                 long_names[grb.cfVarName] = grb.name
                 parameters[grb.cfVarName] = grb.paramId
@@ -135,8 +135,7 @@ def extract_profiles(
                 values = grb.values[(lat_idx, lon_idx)]
                 if grb.levtype == "sfc":
                     dimensions[grb.cfVarName] = ("time",)
-                    for i in range(len(lat)):
-                        output[i][grb.cfVarName].append(values[i : i + 1])
+                    sfc_levels.append(Level(time_idx, 0, grb.cfVarName, values))
                 elif grb.levtype == "pl":
                     dimensions[grb.cfVarName] = ("time", "level")
                     pressure = grb.level
@@ -144,30 +143,34 @@ def extract_profiles(
                         pressure *= HPA_TO_PA
                     elif grb.pressureUnits != "Pa":
                         raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
-                    levels.append(Level(pressure, grb.cfVarName, values))
+                    pressure_levels.append(
+                        Level(time_idx, pressure, grb.cfVarName, values)
+                    )
                 elif grb.levtype == "sol":
                     dimensions[grb.cfVarName] = ("time", "soil_level")
-                    if grb.level > n_soil_levels:
-                        n_soil_levels = grb.level
-                    soil_levels.append(Level(grb.level, grb.cfVarName, values))
+                    soil_levels.append(
+                        Level(time_idx, grb.level, grb.cfVarName, values)
+                    )
 
-        if pressures is None:
-            pressures = sorted({level.level for level in levels}, reverse=True)
-        variables = {level.variable for level in levels}
+    pressures = sorted({level.level for level in pressure_levels}, reverse=True)
+    n_time = len(time)
+    n_pressure = len(pressures)
+    n_soil = max((level.level for level in soil_levels), default=0)
 
-        for j, data in enumerate(output):
-            profile = {v: ma.masked_all(len(pressures)) for v in variables}
-            for level in levels:
-                pressure_idx = pressures.index(level.level)
-                profile[level.variable][pressure_idx] = level.values[j]
-            for level in soil_levels:
-                if level.variable not in profile:
-                    profile[level.variable] = np.full(n_soil_levels, np.nan)
-                profile[level.variable][level.level - 1] = level.values[j]
-            for key, values in profile.items():
-                data[key].append(values)
-
-    assert pressures is not None
+    for output_idx, data in enumerate(output):
+        for level in soil_levels:
+            if level.variable not in data:
+                data[level.variable] = ma.masked_all((n_time, n_soil))
+            data[level.variable][level.time, level.level - 1] = level.values[output_idx]
+        for level in sfc_levels:
+            if level.variable not in data:
+                data[level.variable] = ma.masked_all(n_time)
+            data[level.variable][level.time] = level.values[output_idx]
+        for level in pressure_levels:
+            if level.variable not in data:
+                data[level.variable] = ma.masked_all((n_time, n_pressure))
+            pressure_idx = pressures.index(level.level)
+            data[level.variable][level.time, pressure_idx] = level.values[output_idx]
 
     output_paths = []
 
@@ -191,8 +194,8 @@ def extract_profiles(
 
             nc.createDimension("time", len(time))
             nc.createDimension("level", len(pressures))
-            if n_soil_levels > 0:
-                nc.createDimension("soil_level", n_soil_levels)
+            if n_soil > 0:
+                nc.createDimension("soil_level", n_soil)
 
             ncvar = nc.createVariable("time", "f4", "time", zlib=True)
             ncvar.long_name = "Hours UTC"
