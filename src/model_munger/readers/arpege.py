@@ -51,7 +51,6 @@ units_map = {
 
 def read_arpege(file: str | PathLike, location: Location) -> Model:
     """Read ARPEGE netCDF generated using lfa2nc."""
-
     with netCDF4.Dataset(file) as nc:
         data = {}
         units = {}
@@ -83,7 +82,7 @@ def read_arpege(file: str | PathLike, location: Location) -> Model:
         data["soil_depth"] = np.tile(data["soil_depth"], (len(data["time"]), 1))
 
         history = [
-            f"{nc.NetCdf_creation_date} - {Path(file).name} created by {nc.creator}"
+            f"{nc.NetCdf_creation_date} - {Path(file).name} created by {nc.creator}",
         ]
 
         return Model(ARPEGE, location, data, units, history=history)

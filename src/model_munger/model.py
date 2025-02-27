@@ -10,7 +10,11 @@ import numpy.typing as npt
 from cftime import date2num
 
 from model_munger.metadata import ATTRIBUTES
-from model_munger.utils import calc_relative_humidity, calc_vertical_wind
+from model_munger.utils import (
+    calc_saturated_vapor_pressure,
+    calc_vapor_pressure,
+    calc_vertical_wind,
+)
 from model_munger.version import __version__
 
 
@@ -34,26 +38,27 @@ class Model:
         location: Location,
         data: dict,
         units: dict | None = None,
-        history: list[str] = [],
+        history: list[str] | None = None,
     ):
         self.type = type
         self.location = location
-        self.history = history
+        self.history = history if history is not None else []
         self.data = {}
         for key, value in data.items():
-            if key != "time" and key not in ATTRIBUTES.keys():
+            if key != "time" and key not in ATTRIBUTES:
                 logging.info("Unsupported key %s", key)
                 continue
             if key != "time" and units and units[key] != ATTRIBUTES[key].units:
                 raise ValueError(
-                    f"Excepted '{key}' to have units '{ATTRIBUTES[key].units}' but received '{units[key]}'"
+                    f"Excepted '{key}' to have units '{ATTRIBUTES[key].units}' "
+                    f"but received '{units[key]}'",
                 )
             self.data[key] = value
         if "forecast_time" not in self.data:
             init_time = self.data["time"][0]
             hour = timedelta(hours=1)
             self.data["forecast_time"] = np.array(
-                [(t - init_time) / hour for t in self.data["time"]]
+                [(t - init_time) / hour for t in self.data["time"]],
             )
         if "wwind" not in self.data and "omega" in self.data:
             self.data["wwind"] = calc_vertical_wind(
@@ -63,9 +68,9 @@ class Model:
                 self.data["omega"],
             )
         if "rh" not in self.data and "q" in self.data:
-            self.data["rh"] = calc_relative_humidity(
-                self.data["pressure"], self.data["temperature"], self.data["q"]
-            )
+            vp = calc_vapor_pressure(self.data["pressure"], self.data["q"])
+            svp = calc_saturated_vapor_pressure(self.data["temperature"])
+            self.data["rh"] = vp / svp
         if "cloud_fraction" in self.data:
             frac = self.data["cloud_fraction"]
             frac[frac < 1e-4] = 0
@@ -106,7 +111,8 @@ class Model:
             nc.model_munger_version = __version__
             now = datetime.datetime.now(datetime.timezone.utc)
             history = [
-                f"{now:%Y-%m-%d %H:%M:%S} +00:00 - Cloudnet model file generated using model-munger v{__version__}",
+                f"{now:%Y-%m-%d %H:%M:%S} +00:00 - "
+                f"Cloudnet model file generated using model-munger v{__version__}",
                 *self.history,
             ]
             nc.history = "\n".join(history)
@@ -123,7 +129,9 @@ class Model:
             ncvar.axis = "T"
             ncvar.calendar = "standard"
             ncvar[:] = date2num(
-                self.data["time"], units=ncvar.units, calendar=ncvar.calendar
+                self.data["time"],
+                units=ncvar.units,
+                calendar=ncvar.calendar,
             )
 
             for key, meta in ATTRIBUTES.items():
@@ -134,7 +142,11 @@ class Model:
                     data_type = "f4"
                 fill_value = netCDF4.default_fillvals[data_type]
                 ncvar = nc.createVariable(
-                    key, data_type, meta.dimensions, zlib=True, fill_value=fill_value
+                    key,
+                    data_type,
+                    meta.dimensions,
+                    zlib=True,
+                    fill_value=fill_value,
                 )
                 ncvar.units = meta.units
                 ncvar.long_name = meta.long_name

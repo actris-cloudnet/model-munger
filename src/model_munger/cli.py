@@ -46,7 +46,9 @@ def main():
         help="Where to download ECMWF open data from.",
     )
     parser.add_argument(
-        "--submit", action="store_true", help="Submit files to Cloudnet."
+        "--submit",
+        action="store_true",
+        help="Submit files to Cloudnet.",
     )
     parser.add_argument(
         "--no-keep",

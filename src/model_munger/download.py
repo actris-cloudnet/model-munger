@@ -24,7 +24,9 @@ def download_ecmwf(
     Args:
         date: Forecast date (UTC)
         run: Forecast run (0, 6, 12 or 18 UTC hour)
+        steps: Forecast steps (0, 1, 2, ...)
         directory: Directory to save downloaded files.
+        source: Location from which to download files.
 
     Returns:
         Paths to downloaded files
@@ -53,7 +55,8 @@ def _download_file_with_retry(url: str, out: Path):
             break
         except requests.HTTPError as e:
             print(
-                f"Failed to download file on attempt {attempt+1}: {e}", file=sys.stderr
+                f"Failed to download file on attempt {attempt + 1}: {e}",
+                file=sys.stderr,
             )
             out.unlink(missing_ok=True)
             if attempt > 10:

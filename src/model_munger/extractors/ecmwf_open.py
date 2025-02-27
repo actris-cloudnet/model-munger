@@ -29,7 +29,9 @@ class Level:
 
 
 def _find_closest_gridpoints(
-    grb, latitudes: npt.NDArray, longitudes: npt.NDArray
+    grb,
+    latitudes: npt.NDArray,
+    longitudes: npt.NDArray,
 ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, float]:
     if grb.gridType not in ("regular_gg", "regular_ll", "reduced_gg", "reduced_ll"):
         raise NotImplementedError(f"Not implemented for grid type {grb.gridType}")
@@ -46,8 +48,7 @@ def extract_profiles(
     sites: list[dict],
     output_directory: str | PathLike,
 ) -> list[Path]:
-    """Extract profiles from ECMWF open data GRIB files and output them in
-    netCDF files.
+    """Extract profiles from ECMWF open data GRIB files.
 
     Args:
         input_files: List of GRIB files from a single run.
@@ -57,7 +58,6 @@ def extract_profiles(
     Returns:
         List of output files.
     """
-
     time = []
     output: list[dict] = [defaultdict(list) for site in sites]
     latitudes = np.array([site["latitude"] for site in sites])
@@ -119,18 +119,20 @@ def extract_profiles(
             for grb in grbs:
                 if lat is None:
                     lat, lon, lat_idx, lon_idx, res = _find_closest_gridpoints(
-                        grb, latitudes, longitudes
+                        grb,
+                        latitudes,
+                        longitudes,
                     )
                     for output_idx in range(len(lat)):
                         output[output_idx]["latitude"] = lat[output_idx]
                         output[output_idx]["longitude"] = lon[output_idx]
                         output[output_idx]["horizontal_resolution"] = np.round(
-                            res * M_TO_KM
+                            res * M_TO_KM,
                         )
                 units[grb.cfVarName] = grb.units
                 long_names[grb.cfVarName] = grb.name
                 parameters[grb.cfVarName] = grb.paramId
-                if "cfName" in grb.keys() and grb.cfName != "unknown":
+                if "cfName" in grb.keys() and grb.cfName != "unknown":  # noqa: SIM118
                     standard_names[grb.cfVarName] = grb.cfName
                 values = grb.values[(lat_idx, lon_idx)]
                 if grb.levtype == "sfc":
@@ -144,12 +146,12 @@ def extract_profiles(
                     elif grb.pressureUnits != "Pa":
                         raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
                     pressure_levels.append(
-                        Level(time_idx, pressure, grb.cfVarName, values)
+                        Level(time_idx, pressure, grb.cfVarName, values),
                     )
                 elif grb.levtype == "sol":
                     dimensions[grb.cfVarName] = ("time", "soil_level")
                     soil_levels.append(
-                        Level(time_idx, grb.level, grb.cfVarName, values)
+                        Level(time_idx, grb.level, grb.cfVarName, values),
                     )
 
     pressures = sorted({level.level for level in pressure_levels}, reverse=True)
@@ -189,7 +191,9 @@ def extract_profiles(
             nc.model_munger_version = __version__
             now = datetime.datetime.now(datetime.timezone.utc)
             nc.history = (
-                f"{now:%Y-%m-%d %H:%M:%S} +00:00 - Model run {start_dt:%H} UTC extracted from ECMWF open data using model-munger v{__version__}",
+                f"{now:%Y-%m-%d %H:%M:%S} +00:00 - "
+                f"Model run {start_dt:%H} UTC extracted from ECMWF open data "
+                f"using model-munger v{__version__}",
             )
 
             nc.createDimension("time", len(time))
@@ -209,12 +213,16 @@ def extract_profiles(
             ncvar.units = "Pa"
             ncvar[:] = pressures
 
-            for key, values in data.items():
-                values = ma.array(values)
+            for key in data:
+                values = ma.array(data[key])
                 data_type = values.dtype.str[1:]
                 fill_value = netCDF4.default_fillvals[data_type]
                 ncvar = nc.createVariable(
-                    key, data_type, dimensions[key], zlib=True, fill_value=fill_value
+                    key,
+                    data_type,
+                    dimensions[key],
+                    zlib=True,
+                    fill_value=fill_value,
                 )
                 ncvar.units = units[key]
                 ncvar.long_name = long_names[key]

@@ -54,4 +54,11 @@ pattern = ["__version__ = \"(?P<major>\\d+).(?P<minor>\\d+).(?P<patch>\\d+)\""]
 changelog = "CHANGELOG.md"
 
 [tool.ruff.lint]
-select = ["I"]
+select = ["I", "E", "F", "B", "UP", "SIM", "D", "PLE", "PLW", "PLC"]
+ignore = ["D1"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["PLC0414"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

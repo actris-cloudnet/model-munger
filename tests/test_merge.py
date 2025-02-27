@@ -63,7 +63,8 @@ def test_merge():
     assert_array_equal(merged.data["pressure"], pressure1[:12] + pressure2)
     assert_array_equal(merged.data["height"], [[10, 100, 1000]] * (12 + 25))
     assert_array_equal(
-        merged.data["forecast_time"], np.concatenate([np.arange(12), np.arange(25)])
+        merged.data["forecast_time"],
+        np.concatenate([np.arange(12), np.arange(25)]),
     )
 
 
@@ -116,5 +117,6 @@ def test_missing_variable_is_masked():
     )
     assert_array_equal(merged.data["height"], [[10, 100, 1000]] * (12 + 25))
     assert_array_equal(
-        merged.data["forecast_time"], np.concatenate([np.arange(12), np.arange(25)])
+        merged.data["forecast_time"],
+        np.concatenate([np.arange(12), np.arange(25)]),
     )

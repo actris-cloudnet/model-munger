@@ -42,7 +42,7 @@ def merge_models(models: list[Model]) -> Model:
     }
 
     # Combine 2D data.
-    for key in models[0].data.keys():
+    for key in models[0].data:
         if key in data:
             continue
         values = []

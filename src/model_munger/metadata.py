@@ -27,7 +27,12 @@ ATTRIBUTES = {
     "forecast_time": Metadata(
         units="hours",
         long_name="Time since initialization of forecast",
-        comment="For each profile in the file this variable contains the time elapsed since the initialization time of the forecast from which it was taken. Note that the profiles in this file may be taken from more than one forecast.",
+        comment=(
+            "For each profile in the file this variable contains the time elapsed "
+            "since the initialization time of the forecast from which it was taken. "
+            "Note that the profiles in this file may be taken from more than one "
+            "forecast."
+        ),
         dimensions=("time",),
     ),
     "model_level": Metadata(
@@ -85,7 +90,10 @@ ATTRIBUTES = {
         long_name="Vertical wind",
         standard_name="upward_air_velocity",
         dimensions=("time", "level"),
-        comment="The vertical wind has been calculated from omega (Pa s-1), height and pressure using: w=omega*dz/dp",
+        comment=(
+            "The vertical wind has been calculated from omega (Pa s-1), "
+            "height and pressure using: w=omega*dz/dp"
+        ),
     ),
     "omega": Metadata(
         units="Pa s-1",
@@ -98,7 +106,10 @@ ATTRIBUTES = {
         long_name="Relative humidity",
         standard_name="relative_humidity",
         dimensions=("time", "level"),
-        comment="With respect to liquid above 0 degrees C and with respect to ice below 0 degrees C. Calculated using Goff-Gratch formula.",
+        comment=(
+            "With respect to liquid above 0 degrees C and with respect to "
+            "ice below 0 degrees C. Calculated using Goff-Gratch formula."
+        ),
     ),
     "q": Metadata(
         units="1",
@@ -640,58 +651,89 @@ ATTRIBUTES = {
         dimensions=("time",),
     ),
     "sfc_temp": Metadata(
-        units="K", long_name="Surface temperature", dimensions=("time",)
+        units="K",
+        long_name="Surface temperature",
+        dimensions=("time",),
     ),
     "sfc_skin_temp": Metadata(
-        units="K", long_name="Surface skin temperature", dimensions=("time",)
+        units="K",
+        long_name="Surface skin temperature",
+        dimensions=("time",),
     ),
     "sfc_temp_2m": Metadata(
-        units="K", long_name="Temperature at 2m", dimensions=("time",)
+        units="K",
+        long_name="Temperature at 2m",
+        dimensions=("time",),
     ),
     "sfc_dewpoint_temp_2m": Metadata(
-        units="K", long_name="Dew point temperature at 2m", dimensions=("time",)
+        units="K",
+        long_name="Dew point temperature at 2m",
+        dimensions=("time",),
     ),
     "sfc_rh_2m": Metadata(
-        units="1", long_name="Relative humidity at 2m", dimensions=("time",)
+        units="1",
+        long_name="Relative humidity at 2m",
+        dimensions=("time",),
     ),
     "sfc_q_2m": Metadata(
-        units="1", long_name="Specific humidity at 2m", dimensions=("time",)
+        units="1",
+        long_name="Specific humidity at 2m",
+        dimensions=("time",),
     ),
     "sfc_rough_mom": Metadata(
-        units="m", long_name="Surface roughness for momentum", dimensions=("time",)
+        units="m",
+        long_name="Surface roughness for momentum",
+        dimensions=("time",),
     ),
     "sfc_rough_heat": Metadata(
-        units="m", long_name="Surface roughness for heat", dimensions=("time",)
+        units="m",
+        long_name="Surface roughness for heat",
+        dimensions=("time",),
     ),
     "sfc_rough_oro": Metadata(
-        units="m", long_name="Surface roughness for orography", dimensions=("time",)
+        units="m",
+        long_name="Surface roughness for orography",
+        dimensions=("time",),
     ),
     "sfc_friction_velocity": Metadata(
-        units="m s-1", long_name="Surface friction velocity", dimensions=("time",)
+        units="m s-1",
+        long_name="Surface friction velocity",
+        dimensions=("time",),
     ),
     "sfc_roughness_length": Metadata(
-        units="m", long_name="Surface roughness length", dimensions=("time",)
+        units="m",
+        long_name="Surface roughness length",
+        dimensions=("time",),
     ),
     "sfc_drag_coefficient": Metadata(
-        units="1", long_name="Surface drag coefficient", dimensions=("time",)
+        units="1",
+        long_name="Surface drag coefficient",
+        dimensions=("time",),
     ),
     "sfc_temp_snow": Metadata(
-        units="K", long_name="Surface snow temperature", dimensions=("time",)
+        units="K",
+        long_name="Surface snow temperature",
+        dimensions=("time",),
     ),
     "sfc_snow_density": Metadata(
-        units="kg m-3", long_name="Surface snow density", dimensions=("time",)
+        units="kg m-3",
+        long_name="Surface snow density",
+        dimensions=("time",),
     ),
     "sfc_emissivity": Metadata(
-        units="1", long_name="Surface emissivity", dimensions=("time",)
+        units="1",
+        long_name="Surface emissivity",
+        dimensions=("time",),
     ),
     "sfc_dissipation": Metadata(
-        units="W n-2", long_name="Surface dissipation", dimensions=("time",)
-    ),
-    "sfc_emissivity": Metadata(
-        units="1", long_name="Surface emissivity", dimensions=("time",)
+        units="W n-2",
+        long_name="Surface dissipation",
+        dimensions=("time",),
     ),
     "sfc_soil_moisture": Metadata(
-        units="1", long_name="Surface soil moisture content", dimensions=("time",)
+        units="1",
+        long_name="Surface soil moisture content",
+        dimensions=("time",),
     ),
     "sfc_wind_u_10m": Metadata(
         long_name="Zonal wind at 10 m",
@@ -741,7 +783,9 @@ ATTRIBUTES = {
         dimensions=("time",),
     ),
     "sfc_bt": Metadata(
-        units="K", long_name="Surface brightness temperature", dimensions=("time",)
+        units="K",
+        long_name="Surface brightness temperature",
+        dimensions=("time",),
     ),
     "sfc_global_rad": Metadata(
         units="kg m-2 s-1",

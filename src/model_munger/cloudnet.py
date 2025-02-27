@@ -42,6 +42,8 @@ def submit_file(filename: Path, site: dict, date: datetime.date):
     res.raise_for_status()
     with open(filename, "rb") as f:
         res = requests.put(
-            f"{BASE_URL}/model-upload/data/{checksum}", data=f, auth=AUTH
+            f"{BASE_URL}/model-upload/data/{checksum}",
+            data=f,
+            auth=AUTH,
         )
         res.raise_for_status()

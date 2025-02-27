@@ -61,8 +61,11 @@ def calc_vertical_wind(
 
 
 def calc_saturated_vapor_pressure(temperature: npt.NDArray) -> npt.NDArray:
-    """Calculate saturation vapor pressure over liquid above freezing and over
-    ice below freezing using Goff-Gratch formulae.
+    """Calculate saturation vapor pressure over liquid or ice.
+
+    Based on the given temperature, the saturated vapor pressure is calculated
+    over liquid above freezing and over ice below freezing using Goff-Gratch
+    formulae.
 
     Args:
         temperature: Temperature (K).
@@ -93,10 +96,10 @@ def calc_saturated_vapor_pressure(temperature: npt.NDArray) -> npt.NDArray:
 
 
 def calc_vapor_pressure(
-    pressure: npt.NDArray, specific_humidity: npt.NDArray
+    pressure: npt.NDArray,
+    specific_humidity: npt.NDArray,
 ) -> npt.NDArray:
-    """Calculate partial pressure of water vapor from atmospheric pressure and
-    specific humidity.
+    """Calculate partial pressure of water vapor.
 
     Args:
         pressure: Air pressure (Pa)
@@ -112,22 +115,3 @@ def calc_vapor_pressure(
     return (
         specific_humidity * pressure / (MW_RATIO + (1 - MW_RATIO) * specific_humidity)
     )
-
-
-def calc_relative_humidity(
-    pressure: npt.NDArray, temperature: npt.NDArray, specific_humidity: npt.NDArray
-) -> npt.NDArray:
-    """Calculate relative humidity with respect to liquid above freezing and
-    with respect to ice below freezing using Goff-Gratch formulae.
-
-    Args:
-        pressure: Pressure (Pa)
-        temperature: Temperature (K)
-        specific_humidity: Specific humidity (kg kg-1)
-
-    Returns:
-        Relative humidity (1)
-    """
-    vp = calc_vapor_pressure(pressure, specific_humidity)
-    svp = calc_saturated_vapor_pressure(temperature)
-    return vp / svp
