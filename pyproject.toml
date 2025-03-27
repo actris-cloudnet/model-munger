@@ -5,20 +5,23 @@ build-backend = "hatchling.build"
 [project]
 name = "model_munger"
 authors = [
-  {name = "Tuomas Siipola", email = "tuomas.siipola@fmi.fi"}
+  {name = "Tuomas Siipola", email = "tuomas.siipola@fmi.fi"},
 ]
 description = "Extract vertical profiles from NWP models and output netCDF files"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
-  "Programming Language :: Python :: 3",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent"
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 dependencies = [
   "netCDF4",
+  "pygrib",
   "requests",
-  "pygrib"
 ]
 dynamic = ["version"]
 
@@ -27,7 +30,7 @@ test = [
   "mypy",
   "pytest",
   "ruff",
-  "types-requests"
+  "types-requests",
 ]
 dev = ["pre-commit", "release-version"]
 
@@ -45,7 +48,7 @@ path = "src/model_munger/version.py"
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ["pygrib.*", "cftime.*"]
+module = ["cftime.*", "pygrib.*"]
 ignore_missing_imports = true
 
 [tool.release-version]
@@ -54,7 +57,7 @@ pattern = ["__version__ = \"(?P<major>\\d+).(?P<minor>\\d+).(?P<patch>\\d+)\""]
 changelog = "CHANGELOG.md"
 
 [tool.ruff.lint]
-select = ["I", "E", "F", "B", "UP", "SIM", "D", "PLE", "PLW", "PLC"]
+select = ["B", "D", "E", "F", "I", "PLC", "PLE", "PLW", "SIM", "UP"]
 ignore = ["D1"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -62,3 +65,7 @@ ignore = ["D1"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[tool.tomlsort]
+trailing_comma_inline_array = true
+sort_inline_arrays = true
