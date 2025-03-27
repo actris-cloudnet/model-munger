@@ -96,7 +96,7 @@ def main():
             )
             output_files = extract_profiles(input_files, sites, output_dir)
             if args.submit:
-                for site, output_file in zip(sites, output_files):
+                for site, output_file in zip(sites, output_files, strict=True):
                     submit_file(output_file, site, date)
             if args.no_keep:
                 for file in input_files + output_files:

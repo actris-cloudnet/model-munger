@@ -46,7 +46,7 @@ def merge_models(models: list[Model]) -> Model:
         if key in data:
             continue
         values = []
-        for i, t in zip(mindex, tindex):
+        for i, t in zip(mindex, tindex, strict=True):
             if key in models[i].data:
                 values.append(models[i].data[key][t : t + 1])
             else:

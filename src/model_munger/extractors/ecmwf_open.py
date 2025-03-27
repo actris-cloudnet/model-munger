@@ -1,10 +1,10 @@
 import datetime
 import re
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Iterable
 
 import netCDF4
 import numpy as np
@@ -176,7 +176,7 @@ def extract_profiles(
 
     output_paths = []
 
-    for site, data in zip(sites, output):
+    for site, data in zip(sites, output, strict=True):
         site_id = site["id"]
         filename = f"{start_dt:%Y%m%d%H%M%S}_{site_id}_ecmwf-open.nc"
         output_path = Path(output_directory) / filename
