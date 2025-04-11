@@ -1,4 +1,5 @@
 import datetime
+import os.path
 import re
 from collections import defaultdict
 from collections.abc import Iterable
@@ -12,11 +13,7 @@ import numpy.typing as npt
 import pygrib
 from numpy import ma
 
-from model_munger.utils import (
-    EARTH_RADIUS,
-    HPA_TO_PA,
-    M_TO_KM,
-)
+from model_munger.utils import EARTH_RADIUS, HPA_TO_PA, M_TO_KM, average_coordinates
 from model_munger.version import __version__
 
 
@@ -58,17 +55,6 @@ def extract_profiles(
     Returns:
         List of output files.
     """
-    time = []
-    output: list[dict] = [defaultdict(list) for site in sites]
-    latitudes = np.array([site["latitude"] for site in sites])
-    longitudes = np.array([site["longitude"] for site in sites])
-
-    lat = None
-    lon = None
-    lat_idx = None
-    lon_idx = None
-    res = None
-
     units = {
         "latitude": "degree_north",
         "longitude": "degree_east",
@@ -80,24 +66,21 @@ def extract_profiles(
         "horizontal_resolution": "Horizontal resolution of model",
     }
     dimensions: dict[str, tuple[str, ...]] = {
-        "latitude": (),
-        "longitude": (),
-        "horizontal_resolution": (),
+        "latitude": ("time",),
+        "longitude": ("time",),
+        "horizontal_resolution": ("time",),
     }
     standard_names = {"latitude": "latitude", "longitude": "longitude"}
     parameters = {}
 
     start_dt = None
-    sfc_levels = []
-    pressure_levels = []
-    soil_levels = []
+    model_time = []
 
-    for time_idx, input_file in enumerate(input_files):
-        path = Path(input_file)
-
-        m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", path.name)
+    for input_file in input_files:
+        basename = os.path.basename(input_file)
+        m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", basename)
         if m is None:
-            raise ValueError(f"Invalid filename: {path.name}")
+            raise ValueError(f"Invalid filename: {basename}")
         new_dt = datetime.datetime(
             year=int(m[1]),
             month=int(m[2]),
@@ -112,22 +95,54 @@ def extract_profiles(
         elif new_dt != start_dt:
             raise ValueError(f"Files from different runs: {new_dt} vs {start_dt}")
         hour = int(m[7])
-        time.append(hour)
+        model_time.append(hour)
 
-        print(f"Opening {path}")
-        with pygrib.open(path) as grbs:
+    output: list[dict] = [defaultdict(list) for site in sites]
+    latitudes = np.empty((len(model_time), len(sites)))
+    longitudes = np.empty((len(model_time), len(sites)))
+
+    for site_idx, site in enumerate(sites):
+        if "mobile" in site["type"]:
+            site_time = np.array(
+                [(t - start_dt) / datetime.timedelta(hours=1) for t in site["time"]]
+            )
+            site_lat, site_lon = average_coordinates(
+                site_time,
+                np.array(site["latitude"]),
+                np.array(site["longitude"]),
+                np.array(model_time),
+            )
+        else:
+            site_lat = site["latitude"]
+            site_lon = site["longitude"]
+        latitudes[:, site_idx] = site_lat
+        longitudes[:, site_idx] = site_lon
+
+    sfc_levels = []
+    pressure_levels = []
+    soil_levels = []
+    for time_idx, input_file in enumerate(input_files):
+        print(f"Opening {input_file}")
+        lat = None
+        lon = None
+        lat_idx = None
+        lon_idx = None
+        res = None
+        with pygrib.open(input_file) as grbs:
             for grb in grbs:
                 if lat is None:
                     lat, lon, lat_idx, lon_idx, res = _find_closest_gridpoints(
                         grb,
-                        latitudes,
-                        longitudes,
+                        latitudes[time_idx],
+                        longitudes[time_idx],
                     )
                     for output_idx in range(len(lat)):
-                        output[output_idx]["latitude"] = lat[output_idx]
-                        output[output_idx]["longitude"] = lon[output_idx]
-                        output[output_idx]["horizontal_resolution"] = np.round(
-                            res * M_TO_KM,
+                        output[output_idx]["latitude"].append(lat[output_idx])
+                        output[output_idx]["longitude"].append(lon[output_idx])
+                        output[output_idx]["horizontal_resolution"].append(
+                            np.round(
+                                res * M_TO_KM,
+                            )
                         )
                 units[grb.cfVarName] = grb.units
                 long_names[grb.cfVarName] = grb.name
@@ -155,7 +170,7 @@ def extract_profiles(
                     )
 
     pressures = sorted({level.level for level in pressure_levels}, reverse=True)
-    n_time = len(time)
+    n_time = len(model_time)
     n_pressure = len(pressures)
     n_soil = max((level.level for level in soil_levels), default=0)
 
@@ -196,8 +211,8 @@ def extract_profiles(
                 f"using model-munger v{__version__}",
             )
 
-            nc.createDimension("time", len(time))
-            nc.createDimension("level", len(pressures))
+            nc.createDimension("time", n_time)
+            nc.createDimension("level", n_pressure)
             if n_soil > 0:
                 nc.createDimension("soil_level", n_soil)
 
@@ -206,7 +221,7 @@ def extract_profiles(
             ncvar.units = f"hours since {start_dt:%Y-%m-%d %H:%M:%S} +00:00"
             ncvar.axis = "T"
             ncvar.calendar = "standard"
-            ncvar[:] = time
+            ncvar[:] = model_time
 
             ncvar = nc.createVariable("pressure", "f4", "level", zlib=True)
             ncvar.long_name = "Pressure"
@@ -231,7 +246,7 @@ def extract_profiles(
                 if key in parameters:
                     ncvar.param_id = parameters[key]
                 if dimensions[key] == ("time",) and len(values) == 1:
-                    values = ma.repeat(values, len(time))
+                    values = ma.repeat(values, n_time)
                 ncvar[:] = values
 
     return output_paths

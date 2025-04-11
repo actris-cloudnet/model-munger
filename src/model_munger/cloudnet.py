@@ -12,14 +12,32 @@ AUTH = (
 )
 
 
-def get_sites() -> list[dict]:
-    res = requests.get(f"{BASE_URL}/api/sites", params={"type": "cloudnet"})
+def get_sites(type: str | None = None) -> list[dict]:
+    params = {"type": type} if type is not None else None
+    res = requests.get(f"{BASE_URL}/api/sites", params)
     res.raise_for_status()
-    return [
-        site
-        for site in res.json()
-        if site["latitude"] is not None and site["longitude"] is not None
-    ]
+    return [site for site in res.json()]
+
+
+def get_locations(
+    site_id: str, date: datetime.date
+) -> tuple[list[datetime.datetime], list[float], list[float]]:
+    res = requests.get(
+        f"{BASE_URL}/api/sites/{site_id}/locations",
+        params={"date": date.isoformat(), "raw": "1"},
+    )
+    res.raise_for_status()
+    data = res.json()
+    return (
+        [
+            datetime.datetime.strptime(d["date"], "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=datetime.timezone.utc
+            )
+            for d in data
+        ],
+        [d["latitude"] for d in data],
+        [d["longitude"] for d in data],
+    )
 
 
 def submit_file(filename: Path, site: dict, date: datetime.date):

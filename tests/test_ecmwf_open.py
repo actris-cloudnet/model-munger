@@ -1,6 +1,7 @@
+import datetime
+
 import netCDF4
-import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 from model_munger.extractors.ecmwf_open import extract_profiles
 
@@ -10,12 +11,24 @@ def test_extract_profiles(tmp_path):
         "tests/data/20250115000000-0h-oper-fc.grib2",
         "tests/data/20250115000000-3h-oper-fc.grib2",
     ]
-    sites = [
+    sites: list[dict] = [
         {
             "id": "hyytiala",
             "humanReadableName": "Hyytiälä",
             "latitude": 61.844,
             "longitude": 24.287,
+            "type": ["cloudnet"],
+        },
+        {
+            "id": "boaty",
+            "humanReadableName": "Boaty McBoatface",
+            "time": [
+                datetime.datetime(2025, 1, 14, 23, 59, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2025, 1, 15, 3, 1, tzinfo=datetime.timezone.utc),
+            ],
+            "latitude": [59.446, 59.801],
+            "longitude": [24.772, 24.839],
+            "type": ["mobile"],
         },
     ]
     output_files = extract_profiles(input_files, sites, tmp_path)
@@ -23,20 +36,10 @@ def test_extract_profiles(tmp_path):
     assert output_files[0].name == "20250115000000_hyytiala_ecmwf-open.nc"
     with netCDF4.Dataset(output_files[0]) as nc:
         assert nc["time"].units == "hours since 2025-01-15 00:00:00 +00:00"
-        assert_allclose(nc["time"][:], [0, 3])
-        assert_allclose(
-            nc["latitude"][:],
-            np.array(sites[0]["latitude"]),
-            rtol=0,
-            atol=0.25 / 2,
-        )
-        assert_allclose(
-            nc["longitude"][:],
-            np.array(sites[0]["longitude"]),
-            rtol=0,
-            atol=0.25 / 2,
-        )
-        assert_allclose(nc["pressure"][:], [100_000, 10_000])
+        assert_array_equal(nc["time"][:], [0, 3])
+        assert_array_equal(nc["latitude"][:], 61.75)
+        assert_array_equal(nc["longitude"][:], 24.25)
+        assert_array_equal(nc["pressure"][:], [100_000, 10_000])
         assert_allclose(
             nc["t"][:],
             [[273.766754, 214.335098], [271.976425, 213.248489]],
@@ -45,4 +48,19 @@ def test_extract_profiles(tmp_path):
         assert_allclose(
             nc["sot"][:],
             [[273.004318, 272.756409], [272.97612, 272.759644]],
+        )
+
+    assert output_files[1].name == "20250115000000_boaty_ecmwf-open.nc"
+    with netCDF4.Dataset(output_files[1]) as nc:
+        assert nc["time"].units == "hours since 2025-01-15 00:00:00 +00:00"
+        assert_array_equal(nc["time"][:], [0, 3])
+        assert_array_equal(nc["latitude"][:], [59.5, 59.75])
+        assert_array_equal(nc["longitude"][:], [24.75, 24.75])
+        assert_array_equal(nc["pressure"][:], [100_000, 10_000])
+        assert_allclose(
+            nc["t"][:], [[275.423004, 213.647598], [275.007675, 213.435989]]
+        )
+        assert_allclose(nc["t2m"][:], [275.584961, 276.343903])
+        assert_allclose(
+            nc["sot"][:], [[274.848068, 274.912659], [277.22612, 277.228394]]
         )

@@ -18,11 +18,13 @@ ATTRIBUTES = {
         units="degree_north",
         long_name="Latitude of model gridpoint",
         standard_name="latitude",
+        dimensions=("time",),
     ),
     "longitude": Metadata(
         units="degree_east",
         long_name="Longitude of model gridpoint",
         standard_name="longitude",
+        dimensions=("time",),
     ),
     "forecast_time": Metadata(
         units="hours",

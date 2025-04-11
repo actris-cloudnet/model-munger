@@ -115,3 +115,40 @@ def calc_vapor_pressure(
     return (
         specific_humidity * pressure / (MW_RATIO + (1 - MW_RATIO) * specific_humidity)
     )
+
+
+def bin_data(
+    values: npt.NDArray, bin_centers: npt.NDArray
+) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.bool]]:
+    n_bins = len(bin_centers)
+    edges = np.empty(n_bins + 1, dtype=bin_centers.dtype)
+    edges[0] = bin_centers[0] - (bin_centers[1] - bin_centers[0]) / 2
+    edges[1:-1] = (bin_centers[:-1] + bin_centers[1:]) / 2
+    edges[-1] = bin_centers[-1] + (bin_centers[-1] - bin_centers[-2]) / 2
+    bins = np.digitize(values, edges) - 1
+    is_valid = (bins >= 0) & (bins < n_bins)
+    return bins[is_valid], is_valid
+
+
+def average_coordinates(
+    time: npt.NDArray,
+    latitude: npt.NDArray,
+    longitude: npt.NDArray,
+    model_time: npt.NDArray,
+) -> tuple[npt.NDArray, npt.NDArray]:
+    n_time = len(model_time)
+    bins, is_valid = bin_data(time, model_time)
+    latrad = np.radians(latitude[is_valid])
+    lonrad = np.radians(longitude[is_valid])
+    x = np.cos(latrad) * np.cos(lonrad)
+    y = np.cos(latrad) * np.sin(lonrad)
+    z = np.sin(latrad)
+    counts = np.bincount(bins, minlength=n_time)
+    if np.any(counts == 0):
+        raise ValueError("Empty bin found")
+    avg_x = np.bincount(bins, weights=x, minlength=n_time) / counts
+    avg_y = np.bincount(bins, weights=y, minlength=n_time) / counts
+    avg_z = np.bincount(bins, weights=z, minlength=n_time) / counts
+    avg_lat = np.degrees(np.atan2(avg_z, np.hypot(avg_x, avg_y)))
+    avg_lon = np.degrees(np.atan2(avg_y, avg_x))
+    return avg_lat, avg_lon

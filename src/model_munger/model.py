@@ -44,6 +44,7 @@ class Model:
         self.location = location
         self.history = history if history is not None else []
         self.data = {}
+        n_time = len(data["time"])
         for key, value in data.items():
             if key != "time" and key not in ATTRIBUTES:
                 logging.info("Unsupported key %s", key)
@@ -53,7 +54,10 @@ class Model:
                     f"Excepted '{key}' to have units '{ATTRIBUTES[key].units}' "
                     f"but received '{units[key]}'",
                 )
-            self.data[key] = value
+            if key in ("latitude", "longitude") and np.ndim(value) == 0:
+                self.data[key] = np.repeat(value, n_time)
+            else:
+                self.data[key] = value
         if "forecast_time" not in self.data:
             init_time = self.data["time"][0]
             hour = timedelta(hours=1)
@@ -141,10 +145,15 @@ class Model:
                 if data_type == "f8":
                     data_type = "f4"
                 fill_value = netCDF4.default_fillvals[data_type]
+                values = self.data[key]
+                dimensions = meta.dimensions
+                if key in ("latitude", "longitude") and np.all(values == values[0]):
+                    values = values[0]
+                    dimensions = ()
                 ncvar = nc.createVariable(
                     key,
                     data_type,
-                    meta.dimensions,
+                    dimensions,
                     zlib=True,
                     fill_value=fill_value,
                 )
@@ -158,5 +167,4 @@ class Model:
                     ncvar.axis = meta.axis
                 if meta.positive:
                     ncvar.positive = meta.positive
-                values = self.data[key]
                 ncvar[:] = values

@@ -3,7 +3,7 @@ import datetime
 import sys
 from pathlib import Path
 
-from model_munger.cloudnet import get_sites, submit_file
+from model_munger.cloudnet import get_locations, get_sites, submit_file
 from model_munger.download import download_ecmwf
 from model_munger.extractors.ecmwf_open import extract_profiles
 
@@ -72,12 +72,14 @@ def main():
             parser.error("--start should be before --stop")
     del args.date
 
-    sites = get_sites()
     if args.sites:
-        if invalid_sites := set(args.sites) - {site["id"] for site in sites}:
+        all_sites = get_sites()
+        if invalid_sites := set(args.sites) - {site["id"] for site in all_sites}:
             parser.error("Invalid sites: " + ",".join(invalid_sites))
             sys.exit(1)
-        sites = [site for site in sites if site["id"] in args.sites]
+        sites = [site for site in all_sites if site["id"] in args.sites]
+    else:
+        sites = get_sites("cloudnet")
 
     download_dir = Path("data")
     output_dir = Path("output")
@@ -94,9 +96,23 @@ def main():
                 directory=download_dir,
                 source=args.source,
             )
-            output_files = extract_profiles(input_files, sites, output_dir)
+            my_sites = sites.copy()
+            for site in my_sites:
+                if "mobile" in site["type"]:
+                    one_day = datetime.timedelta(days=1)
+                    time_prev, lat_prev, lon_prev = get_locations(
+                        site["id"], date - one_day
+                    )
+                    time_curr, lat_curr, lon_curr = get_locations(site["id"], date)
+                    time_next, lat_next, lon_next = get_locations(
+                        site["id"], date + one_day
+                    )
+                    site["time"] = time_prev + time_curr + time_next
+                    site["latitude"] = lat_prev + lat_curr + lat_next
+                    site["longitude"] = lon_prev + lon_curr + lon_next
+            output_files = extract_profiles(input_files, my_sites, output_dir)
             if args.submit:
-                for site, output_file in zip(sites, output_files, strict=True):
+                for site, output_file in zip(my_sites, output_files, strict=True):
                     submit_file(output_file, site, date)
             if args.no_keep:
                 for file in input_files + output_files:

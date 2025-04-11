@@ -5,14 +5,9 @@ from numpy import ma
 from numpy.testing import assert_array_equal
 
 from model_munger.merge import merge_models
-from model_munger.model import Location, Model, ModelType
+from model_munger.model import Model
 
-SNARK = ModelType(
-    id="snark",
-    short_name="SNARK",
-    full_name="System for Numerical Atmospheric Research and Kinetics (SNARK)",
-)
-HELSINKI = Location(id="helsinki", name="Helsinki")
+from .common import HELSINKI, SNARK
 
 
 def test_merge():
@@ -27,8 +22,8 @@ def test_merge():
     height = [[10, 100, 1000]] * 25
     pressure1 = [[101205, 100129, 89875]] * 25
     pressure2 = [[101212, 100136, 89880]] * 25
-    latitude = 60.25
-    longitude = 25.0
+    latitude = [60.25] * 25
+    longitude = [25.0] * 25
     model1 = Model(
         SNARK,
         HELSINKI,
@@ -57,8 +52,8 @@ def test_merge():
     assert merged.type == SNARK
     assert merged.location == HELSINKI
     assert merged.history == ["model 1 was created", "model 2 was created"]
-    assert merged.data["latitude"] == latitude
-    assert merged.data["longitude"] == longitude
+    assert_array_equal(merged.data["latitude"], latitude[:12] + latitude)
+    assert_array_equal(merged.data["longitude"], longitude[:12] + longitude)
     assert_array_equal(merged.data["time"], np.array(time1[:12] + time2))
     assert_array_equal(merged.data["pressure"], pressure1[:12] + pressure2)
     assert_array_equal(merged.data["height"], [[10, 100, 1000]] * (12 + 25))
@@ -79,8 +74,8 @@ def test_missing_variable_is_masked():
     ]
     height = np.array([[10, 100, 1000]] * 25)
     pressure1 = np.array([[101205, 100129, 89875]] * 25)
-    latitude = 60.25
-    longitude = 25.0
+    latitude = [60.25] * 25
+    longitude = [25.0] * 25
     model1 = Model(
         SNARK,
         HELSINKI,
@@ -108,8 +103,8 @@ def test_missing_variable_is_masked():
     assert merged.type == SNARK
     assert merged.location == HELSINKI
     assert merged.history == ["model 1 was created", "model 2 was created"]
-    assert merged.data["latitude"] == latitude
-    assert merged.data["longitude"] == longitude
+    assert_array_equal(merged.data["latitude"], latitude[:12] + latitude)
+    assert_array_equal(merged.data["longitude"], longitude[:12] + longitude)
     assert_array_equal(merged.data["time"], np.array(time1[:12] + time2))
     assert_array_equal(
         merged.data["pressure"],
