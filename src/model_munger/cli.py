@@ -34,6 +34,12 @@ def main():
         help="Comma-separated list of model runs to download.",
     )
     parser.add_argument(
+        "--steps",
+        type=int,
+        default=90,
+        help="Maximum time step. Default is 90 hours.",
+    )
+    parser.add_argument(
         "-s",
         "--sites",
         type=lambda x: x.split(","),
@@ -92,7 +98,7 @@ def main():
             input_files = download_ecmwf(
                 date,
                 run=run,
-                steps=list(range(0, 90 + 1, 3)),
+                steps=list(range(0, args.steps + 1, 3)),
                 directory=download_dir,
                 source=args.source,
             )
