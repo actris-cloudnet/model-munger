@@ -5,6 +5,9 @@ from pathlib import Path
 
 import requests
 
+from model_munger.extract import RawLocation
+from model_munger.model import ModelType
+
 BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000")
 AUTH = (
     os.environ.get("MM_CLOUDNET_USERNAME", "admin"),
@@ -40,7 +43,9 @@ def get_locations(
     )
 
 
-def submit_file(filename: Path, site: dict, date: datetime.date):
+def submit_file(
+    filename: Path, location: RawLocation, date: datetime.date, model: ModelType
+):
     print(f"Submit {filename.name}")
     md5_hash = hashlib.md5()
     with open(filename, "rb") as f:
@@ -49,10 +54,10 @@ def submit_file(filename: Path, site: dict, date: datetime.date):
     checksum = md5_hash.hexdigest()
     payload = {
         "measurementDate": date.isoformat(),
-        "model": "ecmwf-open",
+        "model": model.id,
         "filename": filename.name,
         "checksum": checksum,
-        "site": site["id"],
+        "site": location.id,
     }
     res = requests.post(f"{BASE_URL}/model-upload/metadata/", json=payload, auth=AUTH)
     if res.status_code == 409:

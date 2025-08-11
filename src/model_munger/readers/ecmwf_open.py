@@ -12,12 +12,14 @@ keymap = {
     "asn": "sfc_albedo_snow",
     "d2m": "sfc_dewpoint_temp_2m",
     "fg10": "sfc_wind_gust_10m",
+    "horizontal_resolution": "horizontal_resolution",
     "latitude": "latitude",
     "longitude": "longitude",
     "lsm": "sfc_land_cover",
     "msl": "sfc_pressure_amsl",
     "pressure": "pressure",
     "q": "q",
+    "r": "rh",
     "skt": "sfc_skin_temp",
     "sot": "soil_temperature",
     "sp": "sfc_pressure",
@@ -34,12 +36,19 @@ keymap = {
     "w": "omega",
 }
 
+RH_COMMENT = """For temperatures over 0°C (273.15 K) it is calculated for
+saturation over water. At temperatures below -23°C it is calculated for
+saturation over ice. Between -23°C and 0°C this parameter is calculated by
+interpolating between the ice and water values using a quadratic function."""
+
 
 def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
     """Read ECMWF open data netCDF generated using model-munger."""
     with netCDF4.Dataset(file) as nc:
         data = {}
         units = {}
+        sources = {}
+        comments = {"rh": RH_COMMENT}
 
         for src, dst in keymap.items():
             if src not in nc.variables:
@@ -47,6 +56,8 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
             var = nc[src]
             data[dst] = var[:]
             units[dst] = _normalize_units(var.units)
+            if hasattr(var, "param_id"):
+                sources[dst] = f"ECMWF parameter {var.param_id}"
 
         time = nc["time"]
         data["time"] = num2pydate(time[:], units=time.units)
@@ -60,10 +71,13 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
 
         data["height"] = calc_geometric_height(nc["gh"][:])
         units["height"] = "m"
+        sources["height"] = (
+            f"ECMWF parameter {nc['gh'].param_id} converted from gpm to m"
+        )
 
         history = nc.history.splitlines()
 
-        return Model(ECMWF_OPEN, location, data, units, history=history)
+        return Model(ECMWF_OPEN, location, data, units, sources, comments, history)
 
 
 def _normalize_units(units: str) -> str:

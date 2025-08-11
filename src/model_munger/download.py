@@ -1,57 +1,34 @@
 import datetime
+import email.utils
+import os
 import sys
 import time
 from pathlib import Path
-from typing import Literal
 
 import requests
 
-SOURCES = {
-    "ecmwf": "https://data.ecmwf.int/forecasts",
-    "aws": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
-}
 
-
-def download_ecmwf(
-    date: datetime.date,
-    run: Literal[0, 6, 12, 18],
-    steps: list[int],
-    directory: Path,
-    source: Literal["ecmwf", "aws"],
-) -> list[Path]:
-    """Download ECMWF high-resolution forecast model (open data subset).
+def download_file(
+    url: str, outdir: Path, retries: int = 10, revalidate: bool = False
+) -> Path:
+    """Downloads a file from a URL with cache and retry logic.
 
     Args:
-        date: Forecast date (UTC)
-        run: Forecast run (0, 6, 12 or 18 UTC hour)
-        steps: Forecast steps (0, 1, 2, ...)
-        directory: Directory to save downloaded files.
-        source: Location from which to download files.
+        url: The URL from which to download the file.
+        outdir: The local filesystem path where the downloaded file will be saved.
+        retries: Maximum number of retry attempts on failure.
+        revalidate: If True, the cached file is revalidated based on
+            modification time. Defaults to False.
 
-    Returns:
-        Paths to downloaded files
+    Raises:
+        requests.HTTPError: If the download fails after all retries.
     """
-    date_str = date.strftime("%Y%m%d")
-    run_str = str(run).zfill(2)
-    stream = "oper" if run in (0, 12) else "scda"
-    paths = []
-    base_url = SOURCES[source]
-    for step in steps:
-        filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
-        path = directory / filename
-        paths.append(path)
-        if path.exists():
-            continue
-        url = f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
-        _download_file_with_retry(url, path)
-    return paths
-
-
-def _download_file_with_retry(url: str, out: Path):
+    filename = url.rsplit("/", maxsplit=1)[-1]
+    out = outdir / filename
     attempt = 0
     while True:
         try:
-            _download_file(url, out)
+            _download_file(url, out, revalidate)
             break
         except requests.HTTPError as e:
             print(
@@ -59,20 +36,32 @@ def _download_file_with_retry(url: str, out: Path):
                 file=sys.stderr,
             )
             out.unlink(missing_ok=True)
-            if attempt > 10:
+            if attempt >= retries:
                 raise
             time.sleep(2**attempt)
         attempt += 1
+    return out
 
 
-def _download_file(url: str, out: Path):
+def _download_file(url: str, out: Path, revalidate: bool):
     try:
         pending_output = False
         print_progress = sys.stdout.isatty()
         if not print_progress:
             print(f"Download {url}", file=sys.stderr)
-        with requests.get(url, stream=True) as res:
+        headers = {}
+        if out.exists():
+            if not revalidate:
+                return
+            mtime = os.path.getmtime(out)
+            headers["If-Modified-Since"] = email.utils.formatdate(mtime, usegmt=True)
+        with requests.get(url, headers=headers, stream=True) as res:
             res.raise_for_status()
+            # GDAS1 redirects missing files to a page that returns 200.
+            if res.url.endswith("/notfound.php"):
+                raise Exception("Page not found")
+            if res.status_code == 304:
+                return
             total_bytes = res.headers.get("Content-Length")
             with out.open("wb") as f:
                 if total_bytes is None:
@@ -92,6 +81,16 @@ def _download_file(url: str, out: Path):
                                 flush=True,
                             )
                             pending_output = True
+            if "Last-Modified" in res.headers:
+                last_modified = res.headers["Last-Modified"]
+                try:
+                    new_mtime = email.utils.parsedate_to_datetime(
+                        last_modified
+                    ).timestamp()
+                    new_atime = datetime.datetime.now().timestamp()
+                    os.utime(out, (new_atime, new_mtime))
+                except ValueError:
+                    pass
     finally:
         if pending_output:
             print(file=sys.stderr)

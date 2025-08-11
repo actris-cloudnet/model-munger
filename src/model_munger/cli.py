@@ -4,8 +4,14 @@ import sys
 from pathlib import Path
 
 from model_munger.cloudnet import get_locations, get_sites, submit_file
-from model_munger.download import download_ecmwf
-from model_munger.extractors.ecmwf_open import extract_profiles
+from model_munger.download import download_file
+from model_munger.extract import RawLocation, extract_profiles, write_netcdf
+from model_munger.extractors.ecmwf_open import generate_ecmwf_url, read_ecmwf
+from model_munger.extractors.gdas1 import generate_gdas1_url, read_gdas1
+from model_munger.level import Level
+from model_munger.readers.ecmwf_open import ECMWF_OPEN
+from model_munger.readers.gdas1 import GDAS1
+from model_munger.version import __version__ as model_munger_version
 
 
 def main():
@@ -46,9 +52,14 @@ def main():
         help="Comma-separated list of Cloudnet sites (e.g. hyytiala) to extract.",
     )
     parser.add_argument(
+        "-m",
+        "--model",
+        choices=["ecmwf-open", "gdas1"],
+        help="Which model to download and process.",
+    )
+    parser.add_argument(
         "--source",
-        choices=["ecmwf", "aws"],
-        default="ecmwf",
+        choices=["ecmwf", "noaa", "aws"],
         help="Where to download ECMWF open data from.",
     )
     parser.add_argument(
@@ -92,18 +103,24 @@ def main():
     download_dir.mkdir(exist_ok=True)
     output_dir.mkdir(exist_ok=True)
 
+    current_files: set[Path] = set()
+    last_files: set[Path] = set()
+
+    def _remove_unused_files():
+        if args.no_keep:
+            unused_files = last_files - current_files
+            for file in unused_files:
+                print("Remove", file)
+                file.unlink()
+        last_files.clear()
+        last_files.update(current_files)
+        current_files.clear()
+
     date = args.start
     while date <= args.stop:
         for run in args.runs:
-            input_files = download_ecmwf(
-                date,
-                run=run,
-                steps=list(range(0, args.steps + 1, 3)),
-                directory=download_dir,
-                source=args.source,
-            )
-            my_sites = sites.copy()
-            for site in my_sites:
+            locations = []
+            for site in sites:
                 if "mobile" in site["type"]:
                     one_day = datetime.timedelta(days=1)
                     time_prev, lat_prev, lon_prev = get_locations(
@@ -113,17 +130,70 @@ def main():
                     time_next, lat_next, lon_next = get_locations(
                         site["id"], date + one_day
                     )
-                    site["time"] = time_prev + time_curr + time_next
-                    site["latitude"] = lat_prev + lat_curr + lat_next
-                    site["longitude"] = lon_prev + lon_curr + lon_next
-            output_files = extract_profiles(input_files, my_sites, output_dir)
-            if args.submit:
-                for site, output_file in zip(my_sites, output_files, strict=True):
-                    submit_file(output_file, site, date)
-            if args.no_keep:
-                for file in input_files + output_files:
-                    file.unlink()
+                    time = time_prev + time_curr + time_next
+                    latitude = lat_prev + lat_curr + lat_next
+                    longitude = lon_prev + lon_curr + lon_next
+                else:
+                    time = None
+                    latitude = site["latitude"]
+                    longitude = site["longitude"]
+                locations.append(
+                    RawLocation(
+                        id=site["id"],
+                        name=site["humanReadableName"],
+                        time=time,
+                        latitude=latitude,
+                        longitude=longitude,
+                    )
+                )
+
+            levels: list[Level] = []
+
+            if args.model == "ecmwf-open":
+                model = ECMWF_OPEN
+                history = f"Model run {run:02} UTC extracted from ECMWF open data"
+                date_id = f"{date:%Y%m%d}{run:02}0000"
+                source = args.source or "ecmwf"
+                for step in range(0, args.steps + 1, 3):
+                    url = generate_ecmwf_url(date, run, step, source)
+                    path = download_file(url, download_dir)
+                    levels.extend(read_ecmwf(path))
+                    current_files.add(path)
+            elif args.model == "gdas1":
+                model = GDAS1
+                source = args.source or "noaa"
+                url, revalidate = generate_gdas1_url(date, source)
+                filename = url.rsplit("/", maxsplit=1)[-1]
+                history = f"GDAS1 data on {date:%Y-%m-%d} extracted from {filename}"
+                date_id = f"{date:%Y%m%d}"
+                path = download_file(url, download_dir, revalidate=revalidate)
+                for level in read_gdas1(path):
+                    if level.time.date() < date:
+                        continue
+                    if level.time.date() > date:
+                        break
+                    levels.append(level)
+                current_files.add(path)
+
+            now = datetime.datetime.now(datetime.timezone.utc)
+            history_line = (
+                f"{now:%Y-%m-%d %H:%M:%S} +00:00 - {history} "
+                f"using model-munger v{model_munger_version}"
+            )
+
+            for raw in extract_profiles(levels, locations, model, history_line):
+                outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
+                outpath = output_dir / outfile
+                print(outpath)
+                write_netcdf(raw, outpath)
+                if args.submit:
+                    submit_file(outpath, raw.location, date, raw.model)
+
+            _remove_unused_files()
+
         date += datetime.timedelta(days=1)
+
+    _remove_unused_files()
 
 
 def utctoday():

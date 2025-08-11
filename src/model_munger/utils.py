@@ -95,28 +95,6 @@ def calc_saturated_vapor_pressure(temperature: npt.NDArray) -> npt.NDArray:
     return np.where(temperature < T0, ice, liquid)
 
 
-def calc_vapor_pressure(
-    pressure: npt.NDArray,
-    specific_humidity: npt.NDArray,
-) -> npt.NDArray:
-    """Calculate partial pressure of water vapor.
-
-    Args:
-        pressure: Air pressure (Pa)
-        specific_humidity: Specific humidity (kg kg-1)
-
-    Returns:
-        Vapor pressure (Pa)
-
-    References:
-        Cai, J. (2019). Humidity Measures.
-        https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
-    """
-    return (
-        specific_humidity * pressure / (MW_RATIO + (1 - MW_RATIO) * specific_humidity)
-    )
-
-
 def bin_data(
     values: npt.NDArray, bin_centers: npt.NDArray
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.bool]]:

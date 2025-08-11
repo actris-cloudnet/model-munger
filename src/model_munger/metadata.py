@@ -30,10 +30,10 @@ ATTRIBUTES = {
         units="hours",
         long_name="Time since initialization of forecast",
         comment=(
-            "For each profile in the file this variable contains the time elapsed "
-            "since the initialization time of the forecast from which it was taken. "
-            "Note that the profiles in this file may be taken from more than one "
-            "forecast."
+            "For each profile in the file this variable contains the time\n"
+            "elapsed since the initialization time of the forecast from which\n"
+            "it was taken. Note that the profiles in this file may be taken\n"
+            "from more than one forecast."
         ),
         dimensions=("time",),
     ),
@@ -60,8 +60,7 @@ ATTRIBUTES = {
         dimensions=("time", "level"),
     ),
     "horizontal_resolution": Metadata(
-        long_name="Horizontal resolution of model",
-        units="km",
+        long_name="Horizontal resolution of model", units="km", dimensions=("time",)
     ),
     "pressure": Metadata(
         units="Pa",
@@ -92,10 +91,6 @@ ATTRIBUTES = {
         long_name="Vertical wind",
         standard_name="upward_air_velocity",
         dimensions=("time", "level"),
-        comment=(
-            "The vertical wind has been calculated from omega (Pa s-1), "
-            "height and pressure using: w=omega*dz/dp"
-        ),
     ),
     "omega": Metadata(
         units="Pa s-1",
@@ -108,10 +103,6 @@ ATTRIBUTES = {
         long_name="Relative humidity",
         standard_name="relative_humidity",
         dimensions=("time", "level"),
-        comment=(
-            "With respect to liquid above 0 degrees C and with respect to "
-            "ice below 0 degrees C. Calculated using Goff-Gratch formula."
-        ),
     ),
     "q": Metadata(
         units="1",
@@ -343,13 +334,13 @@ ATTRIBUTES = {
         dimensions=("time", "level"),
     ),
     "flx_turb_mom_u": Metadata(
-        units="kg m-2 s-1",
+        units="kg m-1 s-2",
         long_name="Zonal turbulent momentum flux",
         standard_name="downward_eastward_momentum_flux_in_air",
         dimensions=("time", "level"),
     ),
     "flx_turb_mom_v": Metadata(
-        units="kg m-2 s-1",
+        units="kg m-1 s-2",
         long_name="Meridional turbulent momentum flux",
         standard_name="downward_northward_momentum_flux_in_air",
         dimensions=("time", "level"),
@@ -369,6 +360,12 @@ ATTRIBUTES = {
         units="m2 s-2",
         long_name="Geopotential",
         standard_name="geopotential",
+        dimensions=("time",),
+    ),
+    "sfc_height": Metadata(
+        units="m",
+        long_name="Surface height",
+        standard_name="height_above_mean_sea_level",
         dimensions=("time",),
     ),
     "sfc_net_sw": Metadata(
@@ -391,6 +388,11 @@ ATTRIBUTES = {
     "sfc_net_lw_cs": Metadata(
         units="W m-2",
         long_name="Clear sky net downward longwave flux",
+        dimensions=("time",),
+    ),
+    "sfc_net_lat_heat_flx": Metadata(
+        units="W m-2",
+        long_name="Net latent heat flux at the surface",
         dimensions=("time",),
     ),
     "sfc_up_sw": Metadata(
@@ -583,7 +585,7 @@ ATTRIBUTES = {
     ),
     "sfc_cloud_fraction": Metadata(
         units="1",
-        long_name="Surface cloud fraction",
+        long_name="Surface total cloud fraction",
         dimensions=("time",),
     ),
     "sfc_cloud_fraction_low": Metadata(
@@ -596,9 +598,9 @@ ATTRIBUTES = {
         long_name="Surface cloud fraction (mid-level clouds)",
         dimensions=("time",),
     ),
-    "sfc_total_cloud_fraction_high": Metadata(
+    "sfc_cloud_fraction_high": Metadata(
         units="1",
-        long_name="Surface total cloud fraction (high clouds)",
+        long_name="Surface cloud fraction (high clouds)",
         dimensions=("time",),
     ),
     "sfc_conv_cloud_fraction": Metadata(
@@ -763,12 +765,12 @@ ATTRIBUTES = {
         dimensions=("time",),
     ),
     "sfc_turb_mom_u": Metadata(
-        units="kg m-2 s-1",
+        units="kg m-1 s-2",
         long_name="Surface zonal turbulent momentum flux",
         dimensions=("time",),
     ),
     "sfc_turb_mom_v": Metadata(
-        units="kg m-2 s-1",
+        units="kg m-1 s-2",
         long_name="Surface meridional turbulent momentum flux",
         dimensions=("time",),
     ),
@@ -816,17 +818,17 @@ ATTRIBUTES = {
     ),
     "sfc_vert_diff_accel": Metadata(
         units="kg m-2 s-1",
-        long_name="Surface  vertical diffusion of acceleration",
+        long_name="Surface vertical diffusion of acceleration",
         dimensions=("time",),
     ),
     "sfc_vert_diff_moist": Metadata(
         units="kg m-2 s-1",
-        long_name="Surface  vertical diffusion of moisture",
+        long_name="Surface vertical diffusion of moisture",
         dimensions=("time",),
     ),
     "sfc_vert_diff_heat": Metadata(
         units="kg m-2 s-1",
-        long_name="Surface  vertical diffusion of heat",
+        long_name="Surface vertical diffusion of heat",
         dimensions=("time",),
     ),
     "sfc_visibility": Metadata(
@@ -890,5 +892,35 @@ ATTRIBUTES = {
         long_name="Land cover",
         standard_name="land_area_fraction",
         dimensions=("time",),
+    ),
+    "sfc_cape": Metadata(
+        units="J kg-1",
+        long_name="Convective available potential energy (CAPE)",
+        standard_name="atmosphere_convective_available_potential_energy_wrt_surface",
+        dimensions=("time",),
+    ),
+    "sfc_cin": Metadata(
+        units="J kg-1",
+        long_name="Convective inhibition (CIN)",
+        standard_name="atmosphere_convective_inhibition_wrt_surface",
+        dimensions=("time",),
+    ),
+    "standard_lifted_index": Metadata(
+        units="K", long_name="Standard lifted index", dimensions=("time",)
+    ),
+    "best_4layer_lifted_index": Metadata(
+        units="K", long_name="Best 4-layer lifted index", dimensions=("time",)
+    ),
+    "sfc_categorical_snow": Metadata(
+        units="1", long_name="Categorical snow", dimensions=("time",)
+    ),
+    "sfc_categorical_ice": Metadata(
+        units="1", long_name="Categorical ice", dimensions=("time",)
+    ),
+    "sfc_categorical_freezing_rain": Metadata(
+        units="1", long_name="Categorical freezing rain", dimensions=("time",)
+    ),
+    "sfc_categorical_rain": Metadata(
+        units="1", long_name="Categorical rain", dimensions=("time",)
     ),
 }

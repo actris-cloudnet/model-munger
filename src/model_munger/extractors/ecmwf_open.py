@@ -1,252 +1,113 @@
 import datetime
 import os.path
 import re
-from collections import defaultdict
 from collections.abc import Iterable
-from dataclasses import dataclass
-from os import PathLike
-from pathlib import Path
+from typing import Literal
 
-import netCDF4
-import numpy as np
-import numpy.typing as npt
 import pygrib
-from numpy import ma
 
-from model_munger.utils import EARTH_RADIUS, HPA_TO_PA, M_TO_KM, average_coordinates
-from model_munger.version import __version__
+from model_munger.grid import RegularGrid
+from model_munger.level import Level, LevelType
+from model_munger.utils import HPA_TO_PA
 
-
-@dataclass
-class Level:
-    time: int
-    level: int
-    variable: str
-    values: npt.NDArray
+SOURCES = {
+    "ecmwf": "https://data.ecmwf.int/forecasts",
+    "aws": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
+}
 
 
-def _find_closest_gridpoints(
-    grb,
-    latitudes: npt.NDArray,
-    longitudes: npt.NDArray,
-) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray, float]:
-    if grb.gridType not in ("regular_gg", "regular_ll", "reduced_gg", "reduced_ll"):
-        raise NotImplementedError(f"Not implemented for grid type {grb.gridType}")
-    grid_lats = grb.distinctLatitudes
-    grid_lons = grb.distinctLongitudes
-    lat_ind = np.argmin(np.abs(grid_lats - latitudes[:, np.newaxis]), axis=1)
-    lon_ind = np.argmin(np.abs(grid_lons - longitudes[:, np.newaxis]), axis=1)
-    res = grb.iDirectionIncrementInDegrees / 360 * 2 * np.pi * EARTH_RADIUS
-    return (grid_lats[lat_ind], grid_lons[lon_ind], lat_ind, lon_ind, res)
-
-
-def extract_profiles(
-    input_files: Iterable[str | PathLike],
-    sites: list[dict],
-    output_directory: str | PathLike,
-) -> list[Path]:
-    """Extract profiles from ECMWF open data GRIB files.
+def generate_ecmwf_url(
+    date: datetime.date,
+    run: Literal[0, 6, 12, 18],
+    step: int,
+    source: str,
+) -> str:
+    """Generate URL for ECMWF high-resolution forecast model (open data subset).
 
     Args:
-        input_files: List of GRIB files from a single run.
-        sites: List of sites from Cloudnet API.
-        output_directory: Directory where output files are written.
+        date: Forecast date (UTC)
+        run: Forecast run (0, 6, 12 or 18 UTC hour)
+        step: Forecast step (0, 1, 2, ...)
+        source: Location from which to download files ("ecmwf" or "aws").
 
     Returns:
-        List of output files.
+        URL for GRIB files
     """
-    units = {
-        "latitude": "degree_north",
-        "longitude": "degree_east",
-        "horizontal_resolution": "km",
-    }
-    long_names = {
-        "latitude": "Latitude of model gridpoint",
-        "longitude": "Longitude of model gridpoint",
-        "horizontal_resolution": "Horizontal resolution of model",
-    }
-    dimensions: dict[str, tuple[str, ...]] = {
-        "latitude": ("time",),
-        "longitude": ("time",),
-        "horizontal_resolution": ("time",),
-    }
-    standard_names = {"latitude": "latitude", "longitude": "longitude"}
-    parameters = {}
+    date_str = date.strftime("%Y%m%d")
+    run_str = str(run).zfill(2)
+    stream = "oper" if run in (0, 12) else "scda"
+    if source not in SOURCES:
+        raise ValueError(f"Invalid source: {source}")
+    base_url = SOURCES[source]
+    filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
+    return f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
 
-    start_dt = None
-    model_time = []
 
-    for input_file in input_files:
-        basename = os.path.basename(input_file)
-        m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", basename)
-        if m is None:
-            raise ValueError(f"Invalid filename: {basename}")
-        new_dt = datetime.datetime(
-            year=int(m[1]),
-            month=int(m[2]),
-            day=int(m[3]),
-            hour=int(m[4]),
-            minute=int(m[5]),
-            second=int(m[6]),
-            tzinfo=datetime.timezone.utc,
-        )
-        if start_dt is None:
-            start_dt = new_dt
-        elif new_dt != start_dt:
-            raise ValueError(f"Files from different runs: {new_dt} vs {start_dt}")
-        hour = int(m[7])
-        model_time.append(hour)
-
-    output: list[dict] = [defaultdict(list) for site in sites]
-    latitudes = np.empty((len(model_time), len(sites)))
-    longitudes = np.empty((len(model_time), len(sites)))
-
-    for site_idx, site in enumerate(sites):
-        if "mobile" in site["type"]:
-            site_time = np.array(
-                [(t - start_dt) / datetime.timedelta(hours=1) for t in site["time"]]
-            )
-            site_lat, site_lon = average_coordinates(
-                site_time,
-                np.array(site["latitude"]),
-                np.array(site["longitude"]),
-                np.array(model_time),
-            )
-        else:
-            site_lat = site["latitude"]
-            site_lon = site["longitude"]
-        latitudes[:, site_idx] = site_lat
-        longitudes[:, site_idx] = site_lon
-
-    sfc_levels = []
-    pressure_levels = []
-    soil_levels = []
-    for time_idx, input_file in enumerate(input_files):
-        print(f"Opening {input_file}")
-        lat = None
-        lon = None
-        lat_idx = None
-        lon_idx = None
-        res = None
-        with pygrib.open(input_file) as grbs:
-            for grb in grbs:
-                if lat is None:
-                    lat, lon, lat_idx, lon_idx, res = _find_closest_gridpoints(
-                        grb,
-                        latitudes[time_idx],
-                        longitudes[time_idx],
-                    )
-                    for output_idx in range(len(lat)):
-                        output[output_idx]["latitude"].append(lat[output_idx])
-                        output[output_idx]["longitude"].append(lon[output_idx])
-                        output[output_idx]["horizontal_resolution"].append(
-                            np.round(
-                                res * M_TO_KM,
-                            )
-                        )
-                units[grb.cfVarName] = grb.units
-                long_names[grb.cfVarName] = grb.name
-                parameters[grb.cfVarName] = grb.paramId
-                if "cfName" in grb.keys() and grb.cfName != "unknown":  # noqa: SIM118
-                    standard_names[grb.cfVarName] = grb.cfName
-                values = grb.values[(lat_idx, lon_idx)]
-                if grb.levtype == "sfc":
-                    dimensions[grb.cfVarName] = ("time",)
-                    sfc_levels.append(Level(time_idx, 0, grb.cfVarName, values))
-                elif grb.levtype == "pl":
-                    dimensions[grb.cfVarName] = ("time", "level")
-                    pressure = grb.level
-                    if grb.pressureUnits == "hPa":
-                        pressure *= HPA_TO_PA
-                    elif grb.pressureUnits != "Pa":
-                        raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
-                    pressure_levels.append(
-                        Level(time_idx, pressure, grb.cfVarName, values),
-                    )
-                elif grb.levtype == "sol":
-                    dimensions[grb.cfVarName] = ("time", "soil_level")
-                    soil_levels.append(
-                        Level(time_idx, grb.level, grb.cfVarName, values),
-                    )
-
-    pressures = sorted({level.level for level in pressure_levels}, reverse=True)
-    n_time = len(model_time)
-    n_pressure = len(pressures)
-    n_soil = max((level.level for level in soil_levels), default=0)
-
-    for output_idx, data in enumerate(output):
-        for level in soil_levels:
-            if level.variable not in data:
-                data[level.variable] = ma.masked_all((n_time, n_soil))
-            data[level.variable][level.time, level.level - 1] = level.values[output_idx]
-        for level in sfc_levels:
-            if level.variable not in data:
-                data[level.variable] = ma.masked_all(n_time)
-            data[level.variable][level.time] = level.values[output_idx]
-        for level in pressure_levels:
-            if level.variable not in data:
-                data[level.variable] = ma.masked_all((n_time, n_pressure))
-            pressure_idx = pressures.index(level.level)
-            data[level.variable][level.time, pressure_idx] = level.values[output_idx]
-
-    output_paths = []
-
-    for site, data in zip(sites, output, strict=True):
-        site_id = site["id"]
-        filename = f"{start_dt:%Y%m%d%H%M%S}_{site_id}_ecmwf-open.nc"
-        output_path = Path(output_directory) / filename
-        output_paths.append(output_path)
-        print(f"Saving {filename}")
-        with netCDF4.Dataset(output_path, "w", format="NETCDF4_CLASSIC") as nc:
-            nc.Conventions = "CF-1.8"
-            site_name = site["humanReadableName"]
-            nc.title = f"ECMWF open data single-site output over {site_name}"
-            nc.location = site_name
-            nc.source = "ECMWF open data"
-            nc.model_munger_version = __version__
-            now = datetime.datetime.now(datetime.timezone.utc)
-            nc.history = (
-                f"{now:%Y-%m-%d %H:%M:%S} +00:00 - "
-                f"Model run {start_dt:%H} UTC extracted from ECMWF open data "
-                f"using model-munger v{__version__}",
+def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
+    basename = os.path.basename(filename)
+    m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", basename)
+    if m is None:
+        raise ValueError(f"Invalid filename: {basename}")
+    start_time = datetime.datetime(
+        year=int(m[1]),
+        month=int(m[2]),
+        day=int(m[3]),
+        hour=int(m[4]),
+        minute=int(m[5]),
+        second=int(m[6]),
+    )
+    forecast_time = datetime.timedelta(hours=int(m[7]))
+    time = start_time + forecast_time
+    with pygrib.open(filename) as grbs:
+        for grb in grbs:
+            level = grb.level
+            if grb.levtype == "sfc":
+                kind = LevelType.SURFACE
+            elif grb.levtype == "pl":
+                kind = LevelType.PRESSURE
+                if grb.pressureUnits == "hPa":
+                    level *= HPA_TO_PA
+                elif grb.pressureUnits != "Pa":
+                    raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
+            elif grb.levtype == "sol":
+                kind = LevelType.SOIL
+            else:
+                raise ValueError(f"Invalid level type: {grb.levtype}")
+            attributes = {
+                "long_name": grb.name,
+                "units": grb.units,
+                "param_id": grb.paramId,
+            }
+            if "cfName" in grb.keys() and grb.cfName != "unknown":  # noqa: SIM118
+                attributes["standard_name"] = grb.cfName
+            yield Level(
+                kind=kind,
+                level_no=level,
+                variable=grb.cfVarName,
+                values=grb.values,
+                grid=_make_grid(grb),
+                time=time,
+                forecast_time=forecast_time,
+                attributes=attributes,
             )
 
-            nc.createDimension("time", n_time)
-            nc.createDimension("level", n_pressure)
-            if n_soil > 0:
-                nc.createDimension("soil_level", n_soil)
 
-            ncvar = nc.createVariable("time", "f4", "time", zlib=True)
-            ncvar.long_name = "Hours UTC"
-            ncvar.units = f"hours since {start_dt:%Y-%m-%d %H:%M:%S} +00:00"
-            ncvar.axis = "T"
-            ncvar.calendar = "standard"
-            ncvar[:] = model_time
-
-            ncvar = nc.createVariable("pressure", "f4", "level", zlib=True)
-            ncvar.long_name = "Pressure"
-            ncvar.units = "Pa"
-            ncvar[:] = pressures
-
-            for key in data:
-                values = ma.array(data[key])
-                data_type = values.dtype.str[1:]
-                fill_value = netCDF4.default_fillvals[data_type]
-                ncvar = nc.createVariable(
-                    key,
-                    data_type,
-                    dimensions[key],
-                    zlib=True,
-                    fill_value=fill_value,
-                )
-                ncvar.units = units[key]
-                ncvar.long_name = long_names[key]
-                if key in standard_names:
-                    ncvar.standard_name = standard_names[key]
-                if key in parameters:
-                    ncvar.param_id = parameters[key]
-                if dimensions[key] == ("time",) and len(values) == 1:
-                    values = ma.repeat(values, n_time)
-                ncvar[:] = values
-
-    return output_paths
+def _make_grid(grb):
+    if grb.gridType != "regular_ll":
+        raise ValueError(f"Invalid grid type: {grb.gridType}")
+    delta_lat = grb.jDirectionIncrementInDegrees
+    if not grb.jScansPositively:
+        delta_lat = -delta_lat
+    delta_lon = grb.iDirectionIncrementInDegrees
+    if grb.iScansNegatively:
+        delta_lon = -delta_lon
+    return RegularGrid(
+        grb.Nj,
+        grb.Ni,
+        grb.latitudeOfFirstGridPointInDegrees,
+        grb.longitudeOfFirstGridPointInDegrees,
+        grb.latitudeOfLastGridPointInDegrees,
+        grb.longitudeOfLastGridPointInDegrees,
+        delta_lat,
+        delta_lon,
+    )

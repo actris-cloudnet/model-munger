@@ -11,8 +11,9 @@ from cftime import date2num
 
 from model_munger.metadata import ATTRIBUTES
 from model_munger.utils import (
+    HPA_TO_PA,
+    MW_RATIO,
     calc_saturated_vapor_pressure,
-    calc_vapor_pressure,
     calc_vertical_wind,
 )
 from model_munger.version import __version__
@@ -36,24 +37,31 @@ class Model:
         self,
         type: ModelType,
         location: Location,
-        data: dict,
-        units: dict | None = None,
+        data: dict[str, npt.NDArray],
+        units: dict[str, str] | None = None,
+        sources: dict[str, str] | None = None,
+        comments: dict[str, str] | None = None,
         history: list[str] | None = None,
     ):
         self.type = type
         self.location = location
         self.history = history if history is not None else []
-        self.data = {}
+        self.sources = sources.copy() if sources is not None else {}
+        self.comments = comments if comments is not None else {}
+        self.data: dict[str, npt.NDArray] = {}
         n_time = len(data["time"])
-        for key, value in data.items():
+        for key, raw_value in data.items():
             if key != "time" and key not in ATTRIBUTES:
                 logging.info("Unsupported key %s", key)
                 continue
+            value = raw_value
             if key != "time" and units and units[key] != ATTRIBUTES[key].units:
-                raise ValueError(
-                    f"Excepted '{key}' to have units '{ATTRIBUTES[key].units}' "
-                    f"but received '{units[key]}'",
-                )
+                value = _convert_units(key, value, units[key], ATTRIBUTES[key].units)
+                if key in self.sources:
+                    self.sources[key] = (
+                        self.sources[key]
+                        + f" converted from {units[key]} to {ATTRIBUTES[key].units}"
+                    )
             if key in ("latitude", "longitude") and np.ndim(value) == 0:
                 self.data[key] = np.repeat(value, n_time)
             else:
@@ -71,13 +79,65 @@ class Model:
                 self.data["pressure"],
                 self.data["omega"],
             )
-        if "rh" not in self.data and "q" in self.data:
-            vp = calc_vapor_pressure(self.data["pressure"], self.data["q"])
-            svp = calc_saturated_vapor_pressure(self.data["temperature"])
-            self.data["rh"] = vp / svp
+            self.sources["wwind"] = (
+                "Calculated from omega, height and pressure using: w=omega*dz/dp"
+            )
+        self._calculate_q("q", "rh", "pressure", "temperature")
+        self._calculate_q("sfc_q_2m", "sfc_rh_2m", "sfc_pressure", "sfc_temp_2m")
+        self._calculate_rh("q", "rh", "pressure", "temperature")
+        self._calculate_rh("sfc_q_2m", "sfc_rh_2m", "sfc_pressure", "sfc_temp_2m")
         if "cloud_fraction" in self.data:
             frac = self.data["cloud_fraction"]
             frac[frac < 1e-4] = 0
+
+    def _calculate_q(
+        self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str
+    ):
+        """Calculate specific humidity if missing.
+
+        References:
+            Cai, J. (2019). Humidity Measures.
+            https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
+        """
+        if (
+            q_key in self.data
+            or rh_key not in self.data
+            or pressure_key not in self.data
+            or temperature_key not in self.data
+        ):
+            return
+        es = calc_saturated_vapor_pressure(self.data[temperature_key])
+        e = self.data[rh_key] * es
+        p = self.data[pressure_key]
+        self.data[q_key] = (MW_RATIO * e) / (p - (1 - MW_RATIO) * e)
+        self.sources[q_key] = (
+            f"Calculated from {rh_key}, {temperature_key} and {pressure_key}"
+        )
+
+    def _calculate_rh(
+        self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str
+    ):
+        """Calculate relative humidity if missing.
+
+        References:
+            Cai, J. (2019). Humidity Measures.
+            https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
+        """
+        if (
+            rh_key in self.data
+            or q_key not in self.data
+            or pressure_key not in self.data
+            or temperature_key not in self.data
+        ):
+            return
+        p = self.data[pressure_key]
+        q = self.data[q_key]
+        e = q * p / (MW_RATIO + (1 - MW_RATIO) * q)
+        es = calc_saturated_vapor_pressure(self.data[temperature_key])
+        self.data[rh_key] = e / es
+        self.sources[rh_key] = (
+            f"Calculated from {q_key}, {temperature_key} and {pressure_key}"
+        )
 
     def screen_time(self, date: datetime.date):
         """Screen time to given date (0th and 24th hour included)."""
@@ -121,10 +181,12 @@ class Model:
             ]
             nc.history = "\n".join(history)
 
-            nc.createDimension("time", len(self.data["time"]))
-            nc.createDimension("level", self.data["height"].shape[1])
+            n_time, n_level = self.data["height"].shape
+            nc.createDimension("time", n_time)
+            nc.createDimension("level", n_level)
             if "soil_depth" in self.data:
-                nc.createDimension("soil_level", self.data["soil_depth"].shape[1])
+                n_time, n_soil = self.data["soil_depth"].shape
+                nc.createDimension("soil_level", n_soil)
 
             ncvar = nc.createVariable("time", "f4", "time", zlib=True)
             ncvar.long_name = "Hours UTC"
@@ -161,10 +223,26 @@ class Model:
                 ncvar.long_name = meta.long_name
                 if meta.standard_name:
                     ncvar.standard_name = meta.standard_name
-                if meta.comment:
+                if key in self.comments:
+                    ncvar.comment = self.comments[key]
+                elif meta.comment is not None:
                     ncvar.comment = meta.comment
                 if meta.axis:
                     ncvar.axis = meta.axis
                 if meta.positive:
                     ncvar.positive = meta.positive
+                if key in self.sources:
+                    ncvar.source = self.sources[key]
                 ncvar[:] = values
+
+
+def _convert_units(
+    key: str, values: npt.NDArray, units_from: str, units_to: str
+) -> npt.NDArray:
+    if units_from == "hPa" and units_to == "Pa":
+        return values * HPA_TO_PA
+    if units_from == "hPa s-1" and units_to == "Pa s-1":
+        return values * HPA_TO_PA
+    if units_from == "%" and units_to == "1":
+        return values / 100
+    raise ValueError(f"Cannot convert '{key}' from '{units_from}' to '{units_to}'")
