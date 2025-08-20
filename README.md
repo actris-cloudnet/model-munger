@@ -1,5 +1,8 @@
 # Model Munger
 
+[![Run tests](https://github.com/actris-cloudnet/model-munger/actions/workflows/test.yml/badge.svg)](https://github.com/actris-cloudnet/model-munger/actions/workflows/test.yml)
+[![PyPI version](https://badge.fury.io/py/model-munger.svg)](https://badge.fury.io/py/model-munger)
+
 Extract vertical profiles from numerical weather prediction (NWP) models and
 output netCDF files.
 
