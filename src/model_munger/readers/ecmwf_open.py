@@ -6,7 +6,7 @@ import numpy as np
 from cftime import num2pydate
 
 from model_munger.model import Location, Model, ModelType
-from model_munger.utils import calc_geometric_height
+from model_munger.utils import calc_geometric_height, ffill
 
 keymap = {
     "asn": "sfc_albedo_snow",
@@ -34,6 +34,7 @@ keymap = {
     "v10": "sfc_wind_v_10m",
     "vsw": "soil_moisture",
     "w": "omega",
+    "z": "sfc_geopotential",
 }
 
 RH_COMMENT = """For temperatures over 0°C (273.15 K) it is calculated for
@@ -58,6 +59,11 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
             units[dst] = _normalize_units(var.units)
             if hasattr(var, "param_id"):
                 sources[dst] = f"ECMWF parameter {var.param_id}"
+
+        # Forward-fill values that are available only in the first time step.
+        for key in ("sfc_geopotential",):
+            if key in data:
+                data[key] = ffill(data[key])
 
         time = nc["time"]
         data["time"] = num2pydate(time[:], units=time.units)

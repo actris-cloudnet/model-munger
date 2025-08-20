@@ -13,6 +13,8 @@ from model_munger.metadata import ATTRIBUTES
 from model_munger.utils import (
     HPA_TO_PA,
     MW_RATIO,
+    G,
+    calc_geometric_height,
     calc_saturated_vapor_pressure,
     calc_vertical_wind,
 )
@@ -89,6 +91,10 @@ class Model:
         if "cloud_fraction" in self.data:
             frac = self.data["cloud_fraction"]
             frac[frac < 1e-4] = 0
+        if "sfc_height" not in self.data and "sfc_geopotential" in self.data:
+            geopotential_height = self.data["sfc_geopotential"] / G
+            self.data["sfc_height"] = calc_geometric_height(geopotential_height)
+            self.sources["sfc_height"] = "Calculated from sfc_geopotential"
 
     def _calculate_q(
         self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str

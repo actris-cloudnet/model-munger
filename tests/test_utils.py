@@ -31,3 +31,22 @@ def test_average_coordinates_exception():
     lon = np.array([2, 1, 1, 2])
     with pytest.raises(ValueError, match="Empty bin found"):
         utils.average_coordinates(time, lat, lon, model_time)
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",
+    [
+        (np.array([1, 2, 3]), [1, 2, 3]),
+        (ma.array([]), []),
+        (ma.array([1, 2, 3]), [1, 2, 3]),
+        (ma.array([1, 2, 3], mask=[0, 0, 0]), [1, 2, 3]),
+        (ma.array([1, 2, 3], mask=[1, 0, 0]), ma.array([1, 2, 3], mask=[1, 0, 0])),
+        (ma.array([1, 2, 3], mask=[0, 1, 0]), [1, 1, 3]),
+        (ma.array([1, 2, 3], mask=[0, 1, 1]), [1, 1, 1]),
+        (ma.array([1, 2, 3], mask=[1, 1, 1]), ma.array([1, 2, 3], mask=[1, 1, 1])),
+    ],
+)
+def test_fill_masked(test_input, expected):
+    actual = utils.ffill(test_input)
+    assert_array_equal(actual, expected)
+    assert_array_equal(ma.getmaskarray(actual), ma.getmaskarray(expected))

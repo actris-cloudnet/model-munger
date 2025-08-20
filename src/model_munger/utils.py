@@ -2,6 +2,7 @@ from typing import Final
 
 import numpy as np
 import numpy.typing as npt
+from numpy import ma
 
 EARTH_RADIUS: Final = 6_371_229
 "Radius of the Earth (m) as assumed in ECMWF IFS"
@@ -130,3 +131,18 @@ def average_coordinates(
     avg_lat = np.degrees(np.atan2(avg_z, np.hypot(avg_x, avg_y)))
     avg_lon = np.degrees(np.atan2(avg_y, avg_x))
     return avg_lat, avg_lon
+
+
+def ffill(values: npt.NDArray) -> npt.NDArray:
+    """Forward-fills masked values in a 1D NumPy array.
+
+    Args:
+        values: Input 1D array, possibly with masked values.
+
+    Returns:
+        Array with masked values replaced by the most recent non-masked value.
+    """
+    mask = ma.getmaskarray(values)
+    idx = np.where(mask, 0, np.arange(len(values)))
+    np.maximum.accumulate(idx, out=idx)
+    return values[idx]
