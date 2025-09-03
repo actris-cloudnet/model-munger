@@ -26,8 +26,8 @@ def test_extract_profiles(tmp_path):
             id="boaty",
             name="Boaty McBoatface",
             time=[
-                datetime.datetime(2025, 1, 14, 23, 59),
-                datetime.datetime(2025, 1, 15, 3, 1),
+                datetime.datetime(2025, 1, 14, 23, 59, tzinfo=datetime.timezone.utc),
+                datetime.datetime(2025, 1, 15, 3, 1, tzinfo=datetime.timezone.utc),
             ],
             latitude=[59.446, 59.801],
             longitude=[24.772, 24.839],

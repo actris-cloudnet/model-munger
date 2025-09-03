@@ -211,7 +211,9 @@ def _read(f) -> Iterator[Level]:
             values[np.abs(values) < precision] = 0
 
             kind = LevelType.SURFACE if level == 0 else LevelType.PRESSURE
-            time = datetime.datetime(year, month, day, hour)
+            time = datetime.datetime(
+                year, month, day, hour, tzinfo=datetime.timezone.utc
+            )
             forecast_time = datetime.timedelta(hours=hour % 6)
             attributes = {"long_name": LONG_NAMES[variable]}
             if variable in UNITS:

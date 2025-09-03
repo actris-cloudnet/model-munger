@@ -55,6 +55,7 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
         hour=int(m[4]),
         minute=int(m[5]),
         second=int(m[6]),
+        tzinfo=datetime.timezone.utc,
     )
     forecast_time = datetime.timedelta(hours=int(m[7]))
     time = start_time + forecast_time

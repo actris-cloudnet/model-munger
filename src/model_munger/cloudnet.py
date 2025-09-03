@@ -4,43 +4,18 @@ import os
 from pathlib import Path
 
 import requests
+from cloudnet_api_client import APIClient
 
 from model_munger.extract import RawLocation
 from model_munger.model import ModelType
 
-BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000")
+BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000").rstrip("/")
 AUTH = (
     os.environ.get("MM_CLOUDNET_USERNAME", "admin"),
     os.environ.get("MM_CLOUDNET_PASSWORD", "admin"),
 )
 
-
-def get_sites(type: str | None = None) -> list[dict]:
-    params = {"type": type} if type is not None else None
-    res = requests.get(f"{BASE_URL}/api/sites", params)
-    res.raise_for_status()
-    return [site for site in res.json()]
-
-
-def get_locations(
-    site_id: str, date: datetime.date
-) -> tuple[list[datetime.datetime], list[float], list[float]]:
-    res = requests.get(
-        f"{BASE_URL}/api/sites/{site_id}/locations",
-        params={"date": date.isoformat(), "raw": "1"},
-    )
-    res.raise_for_status()
-    data = res.json()
-    return (
-        [
-            datetime.datetime.strptime(d["date"], "%Y-%m-%dT%H:%M:%SZ").replace(
-                tzinfo=datetime.timezone.utc
-            )
-            for d in data
-        ],
-        [d["latitude"] for d in data],
-        [d["longitude"] for d in data],
-    )
+api_client = APIClient(BASE_URL + "/api")
 
 
 def submit_file(

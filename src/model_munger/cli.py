@@ -3,7 +3,7 @@ import datetime
 import sys
 from pathlib import Path
 
-from model_munger.cloudnet import get_locations, get_sites, submit_file
+from model_munger.cloudnet import api_client, submit_file
 from model_munger.download import download_file
 from model_munger.extract import RawLocation, extract_profiles, write_netcdf
 from model_munger.extractors.ecmwf_open import generate_ecmwf_url, read_ecmwf
@@ -90,13 +90,14 @@ def main():
     del args.date
 
     if args.sites:
-        all_sites = get_sites()
-        if invalid_sites := set(args.sites) - {site["id"] for site in all_sites}:
-            parser.error("Invalid sites: " + ",".join(invalid_sites))
+        all_sites = api_client.sites()
+        invalid_ids = set(args.sites) - {site.id for site in all_sites}
+        if invalid_ids:
+            parser.error("Invalid sites: " + ",".join(invalid_ids))
             sys.exit(1)
-        sites = [site for site in all_sites if site["id"] in args.sites]
+        sites = [site for site in all_sites if site.id in args.sites]
     else:
-        sites = get_sites("cloudnet")
+        sites = api_client.sites("cloudnet")
 
     download_dir = Path("data")
     output_dir = Path("output")
@@ -121,26 +122,26 @@ def main():
         for run in args.runs:
             locations = []
             for site in sites:
-                if "mobile" in site["type"]:
-                    one_day = datetime.timedelta(days=1)
-                    time_prev, lat_prev, lon_prev = get_locations(
-                        site["id"], date - one_day
-                    )
-                    time_curr, lat_curr, lon_curr = get_locations(site["id"], date)
-                    time_next, lat_next, lon_next = get_locations(
-                        site["id"], date + one_day
-                    )
-                    time = time_prev + time_curr + time_next
-                    latitude = lat_prev + lat_curr + lat_next
-                    longitude = lon_prev + lon_curr + lon_next
-                else:
+                latitude: float | list[float]
+                longitude: float | list[float]
+                if site.latitude is not None and site.longitude is not None:
                     time = None
-                    latitude = site["latitude"]
-                    longitude = site["longitude"]
+                    latitude = site.latitude
+                    longitude = site.longitude
+                else:
+                    one_day = datetime.timedelta(days=1)
+                    locs = [
+                        *api_client.moving_site_locations(site.id, date - one_day),
+                        *api_client.moving_site_locations(site.id, date),
+                        *api_client.moving_site_locations(site.id, date + one_day),
+                    ]
+                    time = [loc.time for loc in locs]
+                    latitude = [loc.latitude for loc in locs]
+                    longitude = [loc.longitude for loc in locs]
                 locations.append(
                     RawLocation(
-                        id=site["id"],
-                        name=site["humanReadableName"],
+                        id=site.id,
+                        name=site.human_readable_name,
                         time=time,
                         latitude=latitude,
                         longitude=longitude,
