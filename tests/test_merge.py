@@ -10,7 +10,7 @@ from model_munger.model import Model
 from .common import HELSINKI, SNARK
 
 
-def test_merge():
+def test_merge() -> None:
     time1 = [
         datetime.datetime(2024, 1, 22, 0, 0, 0) + datetime.timedelta(hours=i)
         for i in range(25)
@@ -63,7 +63,7 @@ def test_merge():
     )
 
 
-def test_missing_variable_is_masked():
+def test_missing_variable_is_masked() -> None:
     time1 = [
         datetime.datetime(2024, 1, 22, 0, 0, 0) + datetime.timedelta(hours=i)
         for i in range(25)

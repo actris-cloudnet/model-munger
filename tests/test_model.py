@@ -1,4 +1,5 @@
 import datetime
+from pathlib import Path
 
 import netCDF4
 import numpy as np
@@ -9,7 +10,7 @@ from model_munger.model import Model
 from .common import HELSINKI, SNARK
 
 
-def test_model_latlon_scalar(tmp_path):
+def test_model_latlon_scalar(tmp_path: Path) -> None:
     time = np.array(
         [
             datetime.datetime(2024, 1, 22, 0, 0, 0) + datetime.timedelta(hours=i)
@@ -38,7 +39,7 @@ def test_model_latlon_scalar(tmp_path):
         assert_array_equal(nc["longitude"][:], longitude, strict=True)
 
 
-def test_model_latlon_array(tmp_path):
+def test_model_latlon_array(tmp_path: Path) -> None:
     time = np.array(
         [
             datetime.datetime(2024, 1, 22, 0, 0, 0) + datetime.timedelta(hours=i)

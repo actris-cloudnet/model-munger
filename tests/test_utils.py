@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 import pytest
 from numpy import ma
 from numpy.testing import assert_array_equal
@@ -6,7 +7,7 @@ from numpy.testing import assert_array_equal
 from model_munger import utils
 
 
-def test_bin_data():
+def test_bin_data() -> None:
     x = np.arange(-5.0, 11.0)
     y = np.arange(0.0, 6.0, 5.0)
     bins, is_valid = utils.bin_data(x, y)
@@ -14,7 +15,7 @@ def test_bin_data():
     assert_array_equal(is_valid, [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
 
 
-def test_average_coordinates():
+def test_average_coordinates() -> None:
     time = np.array([8, 9, 10, 11, 20])
     model_time = np.array([10, 20])
     lat = np.array([5, 5, 4, 4, 4])
@@ -24,7 +25,7 @@ def test_average_coordinates():
     assert ma.allclose(avg_lon, [1.5, 2.0], atol=1e-3)
 
 
-def test_average_coordinates_exception():
+def test_average_coordinates_exception() -> None:
     time = np.array([8, 9, 10, 11])
     model_time = np.array([0, 10, 20])
     lat = np.array([5, 5, 4, 4])
@@ -46,7 +47,7 @@ def test_average_coordinates_exception():
         (ma.array([1, 2, 3], mask=[1, 1, 1]), ma.array([1, 2, 3], mask=[1, 1, 1])),
     ],
 )
-def test_fill_masked(test_input, expected):
+def test_fill_masked(test_input: npt.NDArray, expected: npt.NDArray) -> None:
     actual = utils.ffill(test_input)
     assert_array_equal(actual, expected)
     assert_array_equal(ma.getmaskarray(actual), ma.getmaskarray(expected))

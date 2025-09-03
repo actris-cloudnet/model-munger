@@ -44,7 +44,7 @@ class Model:
         sources: dict[str, str] | None = None,
         comments: dict[str, str] | None = None,
         history: list[str] | None = None,
-    ):
+    ) -> None:
         self.type = type
         self.location = location
         self.history = history if history is not None else []
@@ -98,7 +98,7 @@ class Model:
 
     def _calculate_q(
         self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str
-    ):
+    ) -> None:
         """Calculate specific humidity if missing.
 
         References:
@@ -122,7 +122,7 @@ class Model:
 
     def _calculate_rh(
         self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str
-    ):
+    ) -> None:
         """Calculate relative humidity if missing.
 
         References:
@@ -145,7 +145,7 @@ class Model:
             f"Calculated from {q_key}, {temperature_key} and {pressure_key}"
         )
 
-    def screen_time(self, date: datetime.date):
+    def screen_time(self, date: datetime.date) -> None:
         """Screen time to given date (0th and 24th hour included)."""
         next_date = date + datetime.timedelta(days=1)
         t_min = datetime.datetime.combine(date, datetime.time())
@@ -154,18 +154,18 @@ class Model:
         mask = (time >= t_min) & (time <= t_max)
         self._screen_data(mask)
 
-    def screen_forecast_time(self, t_min: int, t_max: int):
+    def screen_forecast_time(self, t_min: int, t_max: int) -> None:
         """Screen forecast time to given range (inclusive)."""
         time = self.data["forecast_time"]
         mask = (time >= t_min) & (time <= t_max)
         self._screen_data(mask)
 
-    def _screen_data(self, mask: npt.NDArray[np.bool]):
+    def _screen_data(self, mask: npt.NDArray[np.bool]) -> None:
         for key, values in self.data.items():
             if key == "time" or "time" in ATTRIBUTES[key].dimensions:
                 self.data[key] = values[mask]
 
-    def write_netcdf(self, filename: PathLike | str):
+    def write_netcdf(self, filename: PathLike | str) -> None:
         with netCDF4.Dataset(filename, "w", format="NETCDF4_CLASSIC") as nc:
             nc.Conventions = "CF-1.8"
             nc.title = (

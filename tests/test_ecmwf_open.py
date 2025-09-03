@@ -1,4 +1,5 @@
 import datetime
+from pathlib import Path
 
 import netCDF4
 from numpy.testing import assert_allclose, assert_array_equal
@@ -9,7 +10,7 @@ from model_munger.level import Level
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
 
 
-def test_extract_profiles(tmp_path):
+def test_extract_profiles(tmp_path: Path) -> None:
     input_files = [
         "tests/data/20250115000000-0h-oper-fc.grib2",
         "tests/data/20250115000000-3h-oper-fc.grib2",

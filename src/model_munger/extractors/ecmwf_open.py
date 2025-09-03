@@ -2,7 +2,7 @@ import datetime
 import os.path
 import re
 from collections.abc import Iterable
-from typing import Literal
+from typing import Any, Literal
 
 import pygrib
 
@@ -93,7 +93,7 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
             )
 
 
-def _make_grid(grb):
+def _make_grid(grb: Any) -> RegularGrid:
     if grb.gridType != "regular_ll":
         raise ValueError(f"Invalid grid type: {grb.gridType}")
     delta_lat = grb.jDirectionIncrementInDegrees

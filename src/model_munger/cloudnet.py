@@ -20,7 +20,7 @@ api_client = APIClient(BASE_URL + "/api")
 
 def submit_file(
     filename: Path, location: RawLocation, date: datetime.date, model: ModelType
-):
+) -> None:
     print(f"Submit {filename.name}")
     md5_hash = hashlib.md5()
     with open(filename, "rb") as f:

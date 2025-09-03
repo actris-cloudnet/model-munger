@@ -1,6 +1,7 @@
 import datetime
 import os
 from collections.abc import Iterator
+from typing import BinaryIO
 
 import numpy as np
 
@@ -159,7 +160,7 @@ GRID_DEF = (
 )
 
 
-def _read(f) -> Iterator[Level]:
+def _read(f: BinaryIO) -> Iterator[Level]:
     while True:
         header = f.read(50)
         if len(header) == 0:

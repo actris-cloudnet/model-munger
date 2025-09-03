@@ -201,7 +201,7 @@ def extract_profiles(
     return raws
 
 
-def write_netcdf(raw: RawModel, filename: str | PathLike):
+def write_netcdf(raw: RawModel, filename: str | PathLike) -> None:
     with netCDF4.Dataset(filename, "w", format="NETCDF4_CLASSIC") as nc:
         nc.Conventions = "CF-1.8"
         nc.title = f"{raw.model.short_name} single-site output over {raw.location.name}"

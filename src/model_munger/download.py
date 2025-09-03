@@ -43,7 +43,7 @@ def download_file(
     return out
 
 
-def _download_file(url: str, out: Path, revalidate: bool):
+def _download_file(url: str, out: Path, revalidate: bool) -> None:
     try:
         pending_output = False
         print_progress = sys.stdout.isatty()

@@ -14,7 +14,7 @@ from model_munger.readers.gdas1 import GDAS1
 from model_munger.version import __version__ as model_munger_version
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-d",
@@ -107,7 +107,7 @@ def main():
     current_files: set[Path] = set()
     last_files: set[Path] = set()
 
-    def _remove_unused_files():
+    def _remove_unused_files() -> None:
         if args.no_keep:
             unused_files = last_files - current_files
             for file in unused_files:
@@ -197,7 +197,7 @@ def main():
     _remove_unused_files()
 
 
-def utctoday():
+def utctoday() -> datetime.date:
     return datetime.datetime.now(datetime.timezone.utc).date()
 
 

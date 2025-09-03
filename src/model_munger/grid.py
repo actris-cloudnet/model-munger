@@ -15,7 +15,7 @@ class RegularGrid:
         last_lon: float,
         delta_lat: float,
         delta_lon: float,
-    ):
+    ) -> None:
         self.nlat = nlat
         self.nlon = nlon
         self.first_lat = first_lat
