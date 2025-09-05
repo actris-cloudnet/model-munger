@@ -23,6 +23,7 @@ dependencies = [
   "netCDF4",
   "pygrib",
   "requests",
+  "scipy",
 ]
 dynamic = ["version"]
 

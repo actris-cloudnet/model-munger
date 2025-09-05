@@ -4,13 +4,14 @@ from enum import Enum
 
 import numpy.typing as npt
 
-from model_munger.grid import RegularGrid
+from model_munger.grid import Grid
 
 
 class LevelType(Enum):
     SURFACE = 1
     PRESSURE = 2
     SOIL = 3
+    MODEL = 4
 
 
 @dataclass
@@ -20,6 +21,6 @@ class Level:
     variable: str
     values: npt.NDArray
     time: datetime.datetime
-    forecast_time: datetime.timedelta
-    grid: RegularGrid
+    forecast_time: datetime.timedelta | None
+    grid: Grid
     attributes: dict[str, str]

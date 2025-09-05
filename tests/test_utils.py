@@ -1,37 +1,12 @@
+import datetime
+
 import numpy as np
 import numpy.typing as npt
 import pytest
 from numpy import ma
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 
 from model_munger import utils
-
-
-def test_bin_data() -> None:
-    x = np.arange(-5.0, 11.0)
-    y = np.arange(0.0, 6.0, 5.0)
-    bins, is_valid = utils.bin_data(x, y)
-    assert_array_equal(bins, [0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-    assert_array_equal(is_valid, [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
-
-
-def test_average_coordinates() -> None:
-    time = np.array([8, 9, 10, 11, 20])
-    model_time = np.array([10, 20])
-    lat = np.array([5, 5, 4, 4, 4])
-    lon = np.array([2, 1, 1, 2, 2])
-    avg_lat, avg_lon = utils.average_coordinates(time, lat, lon, model_time)
-    assert ma.allclose(avg_lat, [4.5, 4.0], atol=1e-3)
-    assert ma.allclose(avg_lon, [1.5, 2.0], atol=1e-3)
-
-
-def test_average_coordinates_exception() -> None:
-    time = np.array([8, 9, 10, 11])
-    model_time = np.array([0, 10, 20])
-    lat = np.array([5, 5, 4, 4])
-    lon = np.array([2, 1, 1, 2])
-    with pytest.raises(ValueError, match="Empty bin found"):
-        utils.average_coordinates(time, lat, lon, model_time)
 
 
 @pytest.mark.parametrize(
@@ -51,3 +26,56 @@ def test_fill_masked(test_input: npt.NDArray, expected: npt.NDArray) -> None:
     actual = utils.ffill(test_input)
     assert_array_equal(actual, expected)
     assert_array_equal(ma.getmaskarray(actual), ma.getmaskarray(expected))
+
+
+@pytest.mark.parametrize(
+    "time,expected",
+    [
+        # Before
+        (datetime.datetime(2025, 9, 10, 10, 0), (59.0, 23.0)),
+        # Exact
+        (datetime.datetime(2025, 9, 10, 11, 0), (59.0, 23.0)),
+        (datetime.datetime(2025, 9, 10, 12, 0), (60.0, 24.0)),
+        (datetime.datetime(2025, 9, 10, 13, 0), (61.0, 25.0)),
+        # Between
+        (datetime.datetime(2025, 9, 10, 11, 30), (59.500954, 23.492592)),
+        (datetime.datetime(2025, 9, 10, 12, 30), (60.500935, 24.492287)),
+        # After
+        (datetime.datetime(2025, 9, 10, 14, 0), (61.0, 25.0)),
+    ],
+)
+def test_slerp(
+    time: datetime.datetime, expected: tuple[npt.NDArray, npt.NDArray]
+) -> None:
+    times = [
+        datetime.datetime(2025, 9, 10, 11, 0),
+        datetime.datetime(2025, 9, 10, 12, 0),
+        datetime.datetime(2025, 9, 10, 13, 0),
+    ]
+    latitudes = [59.0, 60.0, 61.0]
+    longitudes = [23.0, 24.0, 25.0]
+    actual = utils.slerp(time, times, latitudes, longitudes)
+    assert_allclose(actual, expected)
+
+
+@pytest.mark.parametrize(
+    "time,expected",
+    [
+        (datetime.datetime(2025, 9, 10, 12, 0), (0.0, 179.0)),
+        (datetime.datetime(2025, 9, 10, 12, 15), (0.0, 179.5)),
+        (datetime.datetime(2025, 9, 10, 12, 30), (0.0, 180.0)),
+        (datetime.datetime(2025, 9, 10, 12, 45), (0.0, -179.5)),
+        (datetime.datetime(2025, 9, 10, 13, 0), (0.0, -179.0)),
+    ],
+)
+def test_slerp_antimeridian(
+    time: datetime.datetime, expected: tuple[npt.NDArray, npt.NDArray]
+) -> None:
+    times = [
+        datetime.datetime(2025, 9, 10, 12, 0),
+        datetime.datetime(2025, 9, 10, 13, 0),
+    ]
+    latitudes = [0.0, 0.0]
+    longitudes = [179.0, -179.0]
+    actual = utils.slerp(time, times, latitudes, longitudes)
+    assert_allclose(actual, expected)

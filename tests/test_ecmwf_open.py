@@ -4,9 +4,8 @@ from pathlib import Path
 import netCDF4
 from numpy.testing import assert_allclose, assert_array_equal
 
-from model_munger.extract import RawLocation, extract_profiles, write_netcdf
+from model_munger.extract import Extractor, FixedLocation, MobileLocation, write_netcdf
 from model_munger.extractors.ecmwf_open import read_ecmwf
-from model_munger.level import Level
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
 
 
@@ -15,15 +14,14 @@ def test_extract_profiles(tmp_path: Path) -> None:
         "tests/data/20250115000000-0h-oper-fc.grib2",
         "tests/data/20250115000000-3h-oper-fc.grib2",
     ]
-    locations = [
-        RawLocation(
+    locations: list[FixedLocation | MobileLocation] = [
+        FixedLocation(
             id="hyytiala",
             name="Hyytiälä",
-            time=None,
             latitude=61.844,
             longitude=24.287,
         ),
-        RawLocation(
+        MobileLocation(
             id="boaty",
             name="Boaty McBoatface",
             time=[
@@ -34,10 +32,15 @@ def test_extract_profiles(tmp_path: Path) -> None:
             longitude=[24.772, 24.839],
         ),
     ]
-    levels: list[Level] = []
+    time = [
+        datetime.datetime(2025, 1, 15, 0, tzinfo=datetime.timezone.utc),
+        datetime.datetime(2025, 1, 15, 3, tzinfo=datetime.timezone.utc),
+    ]
+    extractor = Extractor(time, locations, ECMWF_OPEN)
     for input_file in input_files:
-        levels.extend(read_ecmwf(input_file))
-    for raw in extract_profiles(levels, locations, ECMWF_OPEN):
+        for level in read_ecmwf(input_file):
+            extractor.add_level(level)
+    for raw in extractor.extract_profiles():
         write_netcdf(raw, tmp_path / f"{raw.location.id}.nc")
     with netCDF4.Dataset(tmp_path / "hyytiala.nc") as nc:
         assert nc["time"].units == "hours since 2025-01-15 00:00:00 +00:00"

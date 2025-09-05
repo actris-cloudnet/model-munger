@@ -4,7 +4,21 @@ import numpy.typing as npt
 from model_munger.utils import EARTH_RADIUS
 
 
-class RegularGrid:
+class Grid:
+    def find_closest(
+        self,
+        latitudes: npt.ArrayLike,
+        longitudes: npt.ArrayLike,
+    ) -> tuple[
+        npt.NDArray[np.intp],
+        npt.NDArray[np.floating],
+        npt.NDArray[np.floating],
+        npt.NDArray[np.floating],
+    ]:
+        raise NotImplementedError
+
+
+class RegularGrid(Grid):
     def __init__(
         self,
         nlat: int,
@@ -31,7 +45,6 @@ class RegularGrid:
         longitudes: npt.ArrayLike,
     ) -> tuple[
         npt.NDArray[np.intp],
-        npt.NDArray[np.intp],
         npt.NDArray[np.floating],
         npt.NDArray[np.floating],
         npt.NDArray[np.floating],
@@ -43,9 +56,8 @@ class RegularGrid:
             longitudes: Longitudes (degrees).
 
         Returns:
-            Tuple with latitudinal indices, longitudinal indices, latitudes
-            (degrees), longitudes (degrees) and horizontal resolutions (m) of
-            the closest grid points.
+            Tuple with array indices, latitudes (degrees), longitudes (degrees)
+            and horizontal resolutions (m) of the closest grid points.
         """
         latitudes = np.atleast_1d(latitudes)
         longitudes = np.atleast_1d(longitudes)
@@ -68,4 +80,6 @@ class RegularGrid:
             * np.cos(np.radians(closest_lat))
         )
 
-        return i, j, closest_lat, closest_lon, res
+        idx = np.ravel_multi_index((i, j), (self.nlat, self.nlon))
+
+        return idx, closest_lat, closest_lon, res

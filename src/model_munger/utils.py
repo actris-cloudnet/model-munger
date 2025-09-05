@@ -1,8 +1,10 @@
+import datetime
 from typing import Final
 
 import numpy as np
 import numpy.typing as npt
 from numpy import ma
+from scipy.spatial import geometric_slerp
 
 EARTH_RADIUS: Final = 6_371_229
 "Radius of the Earth (m) as assumed in ECMWF IFS"
@@ -96,43 +98,6 @@ def calc_saturated_vapor_pressure(temperature: npt.NDArray) -> npt.NDArray:
     return np.where(temperature < T0, ice, liquid)
 
 
-def bin_data(
-    values: npt.NDArray, bin_centers: npt.NDArray
-) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.bool]]:
-    n_bins = len(bin_centers)
-    edges = np.empty(n_bins + 1, dtype=bin_centers.dtype)
-    edges[0] = bin_centers[0] - (bin_centers[1] - bin_centers[0]) / 2
-    edges[1:-1] = (bin_centers[:-1] + bin_centers[1:]) / 2
-    edges[-1] = bin_centers[-1] + (bin_centers[-1] - bin_centers[-2]) / 2
-    bins = np.digitize(values, edges) - 1
-    is_valid = (bins >= 0) & (bins < n_bins)
-    return bins[is_valid], is_valid
-
-
-def average_coordinates(
-    time: npt.NDArray,
-    latitude: npt.NDArray,
-    longitude: npt.NDArray,
-    model_time: npt.NDArray,
-) -> tuple[npt.NDArray, npt.NDArray]:
-    n_time = len(model_time)
-    bins, is_valid = bin_data(time, model_time)
-    latrad = np.radians(latitude[is_valid])
-    lonrad = np.radians(longitude[is_valid])
-    x = np.cos(latrad) * np.cos(lonrad)
-    y = np.cos(latrad) * np.sin(lonrad)
-    z = np.sin(latrad)
-    counts = np.bincount(bins, minlength=n_time)
-    if np.any(counts == 0):
-        raise ValueError("Empty bin found")
-    avg_x = np.bincount(bins, weights=x, minlength=n_time) / counts
-    avg_y = np.bincount(bins, weights=y, minlength=n_time) / counts
-    avg_z = np.bincount(bins, weights=z, minlength=n_time) / counts
-    avg_lat = np.degrees(np.atan2(avg_z, np.hypot(avg_x, avg_y)))
-    avg_lon = np.degrees(np.atan2(avg_y, avg_x))
-    return avg_lat, avg_lon
-
-
 def ffill(values: npt.NDArray) -> npt.NDArray:
     """Forward-fills masked values in a 1D NumPy array.
 
@@ -146,3 +111,50 @@ def ffill(values: npt.NDArray) -> npt.NDArray:
     idx = np.where(mask, 0, np.arange(len(values)))
     np.maximum.accumulate(idx, out=idx)
     return values[idx]
+
+
+def spherical_to_cartesian(
+    latitude: npt.ArrayLike, longitude: npt.ArrayLike
+) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
+    latitude = np.radians(latitude)
+    longitude = np.radians(longitude)
+    x = np.cos(latitude) * np.cos(longitude)
+    y = np.cos(latitude) * np.sin(longitude)
+    z = np.sin(latitude)
+    return x, y, z
+
+
+def cartesian_to_spherical(x: float, y: float, z: float) -> tuple[float, float]:
+    hyp = np.hypot(x, y)
+    lat = np.degrees(np.arctan2(z, hyp))
+    lon = np.degrees(np.arctan2(y, x))
+    return lat, lon
+
+
+def slerp(
+    time: datetime.datetime,
+    times: list[datetime.datetime],
+    latitudes: list[float],
+    longitudes: list[float],
+) -> tuple[float, float]:
+    """Perform spherical linear interpolation.
+
+    Args:
+        time: Interpolate point at this time.
+        times: Sorted time array for latitudes and longitudes.
+        latitudes: Latitudes (degrees).
+        longitudes: Longitudes (degrees).
+
+    Returns:
+        Latitude and longitude of interpolated point at given time.
+    """
+    i = np.searchsorted(times, time)  # type: ignore
+    if i == 0:
+        return latitudes[0], longitudes[0]
+    if i == len(times):
+        return latitudes[-1], longitudes[-1]
+    t = (time - times[i - 1]) / (times[i] - times[i - 1])
+    start = spherical_to_cartesian(latitudes[i - 1], longitudes[i - 1])
+    end = spherical_to_cartesian(latitudes[i], longitudes[i])
+    new_point = geometric_slerp(start, end, t)  # type: ignore
+    return cartesian_to_spherical(*new_point)

@@ -224,7 +224,7 @@ def _read(f: BinaryIO) -> Iterator[Level]:
                 kind=kind,
                 level_no=height,
                 variable=variable,
-                values=values,
+                values=np.ravel(values),
                 time=time,
                 forecast_time=forecast_time,
                 grid=GRID,

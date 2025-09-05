@@ -6,7 +6,7 @@ from pathlib import Path
 import requests
 from cloudnet_api_client import APIClient
 
-from model_munger.extract import RawLocation
+from model_munger.extract import FixedLocation, MobileLocation
 from model_munger.model import ModelType
 
 BASE_URL = os.environ.get("MM_CLOUDNET_URL", "http://localhost:3000").rstrip("/")
@@ -19,7 +19,10 @@ api_client = APIClient(BASE_URL + "/api")
 
 
 def submit_file(
-    filename: Path, location: RawLocation, date: datetime.date, model: ModelType
+    filename: Path,
+    location: FixedLocation | MobileLocation,
+    date: datetime.date,
+    model: ModelType,
 ) -> None:
     print(f"Submit {filename.name}")
     md5_hash = hashlib.md5()

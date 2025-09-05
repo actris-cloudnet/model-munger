@@ -1,9 +1,11 @@
 import datetime
+import logging
 import os.path
 import re
 from collections.abc import Iterable
 from typing import Any, Literal
 
+import numpy as np
 import pygrib
 
 from model_munger.grid import RegularGrid
@@ -14,6 +16,7 @@ SOURCES = {
     "ecmwf": "https://data.ecmwf.int/forecasts",
     "aws": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
 }
+_unsupported_levtypes = set()
 
 
 def generate_ecmwf_url(
@@ -73,7 +76,10 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
             elif grb.levtype == "sol":
                 kind = LevelType.SOIL
             else:
-                raise ValueError(f"Invalid level type: {grb.levtype}")
+                if grb.levtype not in _unsupported_levtypes:
+                    logging.warning("Unsupported level type: %s", grb.levtype)
+                    _unsupported_levtypes.add(grb.levtype)
+                continue
             attributes = {
                 "long_name": grb.name,
                 "units": grb.units,
@@ -81,14 +87,15 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
             }
             if "cfName" in grb.keys() and grb.cfName != "unknown":  # noqa: SIM118
                 attributes["standard_name"] = grb.cfName
+            time_invariant = grb.shortName in ("z", "slor", "sdor")
             yield Level(
                 kind=kind,
                 level_no=level,
                 variable=grb.cfVarName,
-                values=grb.values,
+                values=np.ravel(grb.values),
                 grid=_make_grid(grb),
                 time=time,
-                forecast_time=forecast_time,
+                forecast_time=forecast_time if not time_invariant else None,
                 attributes=attributes,
             )
 
