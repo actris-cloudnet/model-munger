@@ -1,3 +1,4 @@
+import datetime
 from os import PathLike
 from pathlib import Path
 
@@ -71,7 +72,18 @@ def read_arpege(file: str | PathLike, location: Location) -> Model:
         data["height"] = data["height"] - ground[:, np.newaxis]
 
         time = nc["time"]
-        data["time"] = num2pydate(time[:], units=time.units)
+        if time.units == "seconds":
+            date_int = nc["date"][0]
+            year, month_day = divmod(date_int, 10000)
+            month, day = divmod(month_day, 100)
+            epoch = datetime.datetime(year, month, day) + datetime.timedelta(
+                seconds=int(nc["second"][0])
+            )
+            data["time"] = np.array(
+                [epoch + datetime.timedelta(seconds=int(t)) for t in time]
+            )
+        else:
+            data["time"] = num2pydate(time[:], units=time.units)
 
         data["latitude"] = nc["lat"][0]
         units["latitude"] = _normalize_units(nc["lat"].units)
