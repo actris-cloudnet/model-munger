@@ -120,7 +120,9 @@ def generate_gdas1_url(date: datetime.date, source: str) -> tuple[str, bool]:
     if source == "noaa":
         today = datetime.datetime.now(datetime.timezone.utc).date()
         current_start = datetime.date(
-            today.year, today.month, 7 * ((today.day - 1) // 7) + 1
+            today.year,
+            today.month,
+            7 * ((today.day - 1) // 7) + 1,
         )
         if date >= current_start:
             filename = "current7days"
@@ -132,7 +134,8 @@ def generate_gdas1_url(date: datetime.date, source: str) -> tuple[str, bool]:
         url = f"{AWS_URL}{date.year}/{filename}"
         revalidate = False
     else:
-        raise ValueError(f"Invalid source: {source}")
+        msg = f"Invalid source: {source}"
+        raise ValueError(msg)
     return url, revalidate
 
 
@@ -166,17 +169,20 @@ def _read(f: BinaryIO) -> Iterator[Level]:
         if len(header) == 0:
             break
         if header[14:18] != b"INDX":
-            raise ValueError("Invalid header")
+            msg = "Invalid header"
+            raise ValueError(msg)
 
         header = f.read(108)
         if header[9:99] != GRID_DEF:
-            raise ValueError("Unexpected grid definition")
+            msg = "Unexpected grid definition"
+            raise ValueError(msg)
         nx = 360
         ny = 181
         nz = int(header[99:102])
         k_flag = int(header[102:104])
         if k_flag != 2:
-            raise ValueError("Expected absolute pressure levels")
+            msg = "Expected absolute pressure levels"
+            raise ValueError(msg)
         lenh = int(header[104:108])
 
         heights = []
@@ -205,7 +211,9 @@ def _read(f: BinaryIO) -> Iterator[Level]:
                 continue
             values = np.frombuffer(compressed, dtype=np.uint8).reshape((ny, nx))
             values = (values.astype(np.float32) - 127) / 2 ** (7 - exponent)
-            assert values[0, 0] == 0
+            if values[0, 0] != 0:
+                msg = "First value not zero"
+                raise ValueError(msg)
             values[0, 0] = value
             np.cumsum(values[:, 0], out=values[:, 0])
             np.cumsum(values, axis=1, out=values)
@@ -213,7 +221,11 @@ def _read(f: BinaryIO) -> Iterator[Level]:
 
             kind = LevelType.SURFACE if level == 0 else LevelType.PRESSURE
             time = datetime.datetime(
-                year, month, day, hour, tzinfo=datetime.timezone.utc
+                year,
+                month,
+                day,
+                hour,
+                tzinfo=datetime.timezone.utc,
             )
             forecast_time = datetime.timedelta(hours=hour % 6)
             attributes = {"long_name": LONG_NAMES[variable]}

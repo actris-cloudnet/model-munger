@@ -53,7 +53,7 @@ units_map = {
 def read_arpege(file: str | PathLike, location: Location) -> Model:
     """Read ARPEGE netCDF generated using lfa2nc."""
     with netCDF4.Dataset(file) as nc:
-        data = {}
+        data: dict = {}
         units = {}
 
         for src, dst in keymap.items():
@@ -77,10 +77,10 @@ def read_arpege(file: str | PathLike, location: Location) -> Model:
             year, month_day = divmod(date_int, 10000)
             month, day = divmod(month_day, 100)
             epoch = datetime.datetime(year, month, day) + datetime.timedelta(
-                seconds=int(nc["second"][0])
+                seconds=int(nc["second"][0]),
             )
             data["time"] = np.array(
-                [epoch + datetime.timedelta(seconds=int(t)) for t in time]
+                [epoch + datetime.timedelta(seconds=int(t)) for t in time],
             )
         else:
             data["time"] = num2pydate(time[:], units=time.units)

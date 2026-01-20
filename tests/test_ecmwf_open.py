@@ -64,9 +64,11 @@ def test_extract_profiles(tmp_path: Path) -> None:
         assert_array_equal(nc["longitude"][:], [24.75, 24.75])
         assert_array_equal(nc["pressure"][:], [100_000, 10_000])
         assert_allclose(
-            nc["t"][:], [[275.423004, 213.647598], [275.007675, 213.435989]]
+            nc["t"][:],
+            [[275.423004, 213.647598], [275.007675, 213.435989]],
         )
         assert_allclose(nc["t2m"][:], [275.584961, 276.343903])
         assert_allclose(
-            nc["sot"][:], [[274.848068, 274.912659], [277.22612, 277.228394]]
+            nc["sot"][:],
+            [[274.848068, 274.912659], [277.22612, 277.228394]],
         )

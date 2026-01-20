@@ -9,7 +9,11 @@ import requests
 
 
 def download_file(
-    url: str, outdir: Path, retries: int = 10, revalidate: bool = False
+    url: str,
+    outdir: Path,
+    retries: int = 10,
+    *,
+    revalidate: bool = False,
 ) -> Path:
     """Downloads a file from a URL with cache and retry logic.
 
@@ -28,7 +32,7 @@ def download_file(
     attempt = 0
     while True:
         try:
-            _download_file(url, out, revalidate)
+            _download_file(url, out, revalidate=revalidate)
             break
         except requests.HTTPError as e:
             print(
@@ -43,7 +47,7 @@ def download_file(
     return out
 
 
-def _download_file(url: str, out: Path, revalidate: bool) -> None:
+def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
     try:
         pending_output = False
         print_progress = sys.stdout.isatty()
@@ -55,11 +59,12 @@ def _download_file(url: str, out: Path, revalidate: bool) -> None:
                 return
             mtime = os.path.getmtime(out)
             headers["If-Modified-Since"] = email.utils.formatdate(mtime, usegmt=True)
-        with requests.get(url, headers=headers, stream=True) as res:
+        with requests.get(url, headers=headers, stream=True, timeout=60) as res:
             res.raise_for_status()
             # GDAS1 redirects missing files to a page that returns 200.
             if res.url.endswith("/notfound.php"):
-                raise Exception("Page not found")
+                msg = "Page not found"
+                raise RuntimeError(msg)
             if res.status_code == 304:
                 return
             total_bytes = res.headers.get("Content-Length")
@@ -85,7 +90,7 @@ def _download_file(url: str, out: Path, revalidate: bool) -> None:
                 last_modified = res.headers["Last-Modified"]
                 try:
                     new_mtime = email.utils.parsedate_to_datetime(
-                        last_modified
+                        last_modified,
                     ).timestamp()
                     new_atime = datetime.datetime.now().timestamp()
                     os.utime(out, (new_atime, new_mtime))

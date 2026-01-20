@@ -1,2 +1,2 @@
 [default]
-extend-ignore-identifiers-re = ["isobaricInhPa", "tke"]
+extend-ignore-identifiers-re = ["INDX", "isobaricInhPa", "tke"]

@@ -120,7 +120,7 @@ def main() -> None:
                             name=site.human_readable_name,
                             latitude=site.latitude,
                             longitude=site.longitude,
-                        )
+                        ),
                     )
                 else:
                     locs = []
@@ -134,7 +134,7 @@ def main() -> None:
                             time=[loc.time for loc in locs],
                             latitude=[loc.latitude for loc in locs],
                             longitude=[loc.longitude for loc in locs],
-                        )
+                        ),
                     )
 
             if args.model == "ecmwf-open":
@@ -142,7 +142,9 @@ def main() -> None:
                 history = f"Model run {run:02} UTC extracted from ECMWF open data"
                 steps = list(range(0, args.steps + 1, 3))
                 start_time = datetime.datetime.combine(
-                    date, datetime.time(run), datetime.timezone.utc
+                    date,
+                    datetime.time(run),
+                    datetime.timezone.utc,
                 )
                 time = [start_time + datetime.timedelta(hours=step) for step in steps]
                 extractor = Extractor(time, locations, model, history)
@@ -164,7 +166,9 @@ def main() -> None:
                 history = f"GDAS1 data on {date:%Y-%m-%d} extracted from {filename}"
                 time = [
                     datetime.datetime.combine(
-                        date, datetime.time(hour), datetime.timezone.utc
+                        date,
+                        datetime.time(hour),
+                        datetime.timezone.utc,
                     )
                     for hour in range(0, 24, 3)
                 ]

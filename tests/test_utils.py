@@ -15,11 +15,17 @@ from model_munger import utils
         (np.array([1, 2, 3]), [1, 2, 3]),
         (ma.array([]), []),
         (ma.array([1, 2, 3]), [1, 2, 3]),
-        (ma.array([1, 2, 3], mask=[0, 0, 0]), [1, 2, 3]),
-        (ma.array([1, 2, 3], mask=[1, 0, 0]), ma.array([1, 2, 3], mask=[1, 0, 0])),
-        (ma.array([1, 2, 3], mask=[0, 1, 0]), [1, 1, 3]),
-        (ma.array([1, 2, 3], mask=[0, 1, 1]), [1, 1, 1]),
-        (ma.array([1, 2, 3], mask=[1, 1, 1]), ma.array([1, 2, 3], mask=[1, 1, 1])),
+        (ma.array([1, 2, 3], mask=[False, False, False]), [1, 2, 3]),
+        (
+            ma.array([1, 2, 3], mask=[True, False, False]),
+            ma.array([1, 2, 3], mask=[True, False, False]),
+        ),
+        (ma.array([1, 2, 3], mask=[False, True, False]), [1, 1, 3]),
+        (ma.array([1, 2, 3], mask=[False, True, True]), [1, 1, 1]),
+        (
+            ma.array([1, 2, 3], mask=[True, True, True]),
+            ma.array([1, 2, 3], mask=[True, True, True]),
+        ),
     ],
 )
 def test_fill_masked(test_input: npt.NDArray, expected: npt.NDArray) -> None:
@@ -45,7 +51,8 @@ def test_fill_masked(test_input: npt.NDArray, expected: npt.NDArray) -> None:
     ],
 )
 def test_slerp(
-    time: datetime.datetime, expected: tuple[npt.NDArray, npt.NDArray]
+    time: datetime.datetime,
+    expected: tuple[npt.NDArray, npt.NDArray],
 ) -> None:
     times = [
         datetime.datetime(2025, 9, 10, 11, 0),
@@ -69,7 +76,8 @@ def test_slerp(
     ],
 )
 def test_slerp_antimeridian(
-    time: datetime.datetime, expected: tuple[npt.NDArray, npt.NDArray]
+    time: datetime.datetime,
+    expected: tuple[npt.NDArray, npt.NDArray],
 ) -> None:
     times = [
         datetime.datetime(2025, 9, 10, 12, 0),

@@ -15,7 +15,7 @@ def test_model_latlon_scalar(tmp_path: Path) -> None:
         [
             datetime.datetime(2024, 1, 22, 0, 0, 0) + datetime.timedelta(hours=i)
             for i in range(25)
-        ]
+        ],
     )
     height = np.array([[10, 100, 1000]] * 25, dtype="f4")
     latitude = np.array(60.25, dtype="f4")
@@ -44,7 +44,7 @@ def test_model_latlon_array(tmp_path: Path) -> None:
         [
             datetime.datetime(2024, 1, 22, 0, 0, 0) + datetime.timedelta(hours=i)
             for i in range(25)
-        ]
+        ],
     )
     height = np.array([[10, 100, 1000]] * 25, dtype="f4")
     latitude = np.round(np.linspace(60, 61, 25, dtype="f4") / 0.25) * 0.25

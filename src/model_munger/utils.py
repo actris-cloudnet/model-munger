@@ -114,7 +114,8 @@ def ffill(values: npt.NDArray) -> npt.NDArray:
 
 
 def spherical_to_cartesian(
-    latitude: npt.ArrayLike, longitude: npt.ArrayLike
+    latitude: npt.ArrayLike,
+    longitude: npt.ArrayLike,
 ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
     latitude = np.radians(latitude)
     longitude = np.radians(longitude)
@@ -148,7 +149,7 @@ def slerp(
     Returns:
         Latitude and longitude of interpolated point at given time.
     """
-    i = np.searchsorted(times, time)  # type: ignore
+    i = np.searchsorted(times, time)  # type: ignore[call-overload]
     if i == 0:
         return latitudes[0], longitudes[0]
     if i == len(times):
@@ -156,5 +157,5 @@ def slerp(
     t = (time - times[i - 1]) / (times[i] - times[i - 1])
     start = spherical_to_cartesian(latitudes[i - 1], longitudes[i - 1])
     end = spherical_to_cartesian(latitudes[i], longitudes[i])
-    new_point = geometric_slerp(start, end, t)  # type: ignore
+    new_point = geometric_slerp(start, end, t)  # type: ignore[arg-type]
     return cartesian_to_spherical(*new_point)

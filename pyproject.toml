@@ -60,11 +60,15 @@ pattern = ["__version__ = \"(?P<major>\\d+).(?P<minor>\\d+).(?P<patch>\\d+)\""]
 changelog = "CHANGELOG.md"
 
 [tool.ruff.lint]
-select = ["ANN", "B", "D", "E", "F", "I", "PLC", "PLE", "PLW", "SIM", "UP"]
-ignore = ["ANN401", "D1"]
+select = ["ALL"]
+ignore = ["ANN401", "C9", "COM812", "D1", "DTZ", "PLR", "PTH", "S324", "T201"]
+
+[tool.ruff.lint.flake8-pytest-style]
+parametrize-names-type = "csv"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["PLC0414"]
+"tests/*.py" = ["S101"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

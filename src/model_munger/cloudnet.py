@@ -37,7 +37,12 @@ def submit_file(
         "checksum": checksum,
         "site": location.id,
     }
-    res = requests.post(f"{BASE_URL}/model-upload/metadata/", json=payload, auth=AUTH)
+    res = requests.post(
+        f"{BASE_URL}/model-upload/metadata/",
+        json=payload,
+        auth=AUTH,
+        timeout=60,
+    )
     if res.status_code == 409:
         return
     res.raise_for_status()
@@ -46,5 +51,6 @@ def submit_file(
             f"{BASE_URL}/model-upload/data/{checksum}",
             data=f,
             auth=AUTH,
+            timeout=60,
         )
         res.raise_for_status()

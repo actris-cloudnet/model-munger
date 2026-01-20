@@ -154,7 +154,7 @@ class Extractor:
         if self.idx is None:
             self._set_grid(level.grid)
         time_idx = self.time.index(level.time)
-        idx = self.idx[:, time_idx]  # type: ignore
+        idx = self.idx[:, time_idx]  # type: ignore[index]
 
         if level.forecast_time is not None:
             self.forecast_time[time_idx] = level.forecast_time / self.time_unit
@@ -174,7 +174,8 @@ class Extractor:
             if self.is_pressure is None:
                 self.is_pressure = is_pressure
             elif self.is_pressure != is_pressure:
-                raise ValueError("Cannot have both pressure and model levels")
+                msg = "Cannot have both pressure and model levels"
+                raise ValueError(msg)
             if level.forecast_time is not None:
                 self.time_level_data[(level.variable, time_idx, level.level_no)] = (
                     level.values[idx]
@@ -189,7 +190,8 @@ class Extractor:
             )
             self.dimensions[level.variable] = ("time", "soil_level")
         else:
-            raise RuntimeError(f"Invalid level type: {level.kind}")
+            msg = f"Invalid level type: {level.kind}"
+            raise RuntimeError(msg)
 
     def extract_profiles(self) -> list[RawModel]:
         if self.idx is None:
@@ -230,7 +232,7 @@ class Extractor:
             "time": np.array(time, dtype=np.float32),
             "forecast_time": self.forecast_time,
         }
-        hres = np.round(self.res * M_TO_KM)  # type: ignore
+        hres = np.round(self.res * M_TO_KM)  # type: ignore[operator]
 
         if self.is_pressure:
             common_data["pressure"] = np.array(model_levels, dtype=np.float32)
@@ -295,8 +297,8 @@ class Extractor:
                 {key: values[loc_idx] for key, values in time_soil_data.items()},
                 {key: values[loc_idx] for key, values in level_data.items()},
                 {
-                    "latitude": self.lat[loc_idx],  # type: ignore
-                    "longitude": self.lon[loc_idx],  # type: ignore
+                    "latitude": self.lat[loc_idx],  # type: ignore[index]
+                    "longitude": self.lon[loc_idx],  # type: ignore[index]
                     "horizontal_resolution": hres[loc_idx],
                 },
             )
@@ -318,6 +320,7 @@ def _merge_dicts(*dicts: dict) -> dict:
     for d in dicts:
         conflicted = output.keys() & d.keys()
         if conflicted:
-            raise KeyError("Conflicting keys: " + ", ".join(conflicted))
+            msg = "Conflicting keys: " + ", ".join(conflicted)
+            raise KeyError(msg)
         output.update(d)
     return output

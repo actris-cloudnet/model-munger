@@ -18,6 +18,8 @@ SOURCES = {
 }
 _unsupported_levtypes = set()
 
+logger = logging.getLogger(__name__)
+
 
 def generate_ecmwf_url(
     date: datetime.date,
@@ -40,7 +42,8 @@ def generate_ecmwf_url(
     run_str = str(run).zfill(2)
     stream = "oper" if run in (0, 12) else "scda"
     if source not in SOURCES:
-        raise ValueError(f"Invalid source: {source}")
+        msg = f"Invalid source: {source}"
+        raise ValueError(msg)
     base_url = SOURCES[source]
     filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
     return f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
@@ -50,7 +53,8 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
     basename = os.path.basename(filename)
     m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", basename)
     if m is None:
-        raise ValueError(f"Invalid filename: {basename}")
+        msg = f"Invalid filename: {basename}"
+        raise ValueError(msg)
     start_time = datetime.datetime(
         year=int(m[1]),
         month=int(m[2]),
@@ -72,12 +76,13 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
                 if grb.pressureUnits == "hPa":
                     level *= HPA_TO_PA
                 elif grb.pressureUnits != "Pa":
-                    raise ValueError(f"Invalid pressure units: {grb.pressureUnits}")
+                    msg = f"Invalid pressure units: {grb.pressureUnits}"
+                    raise ValueError(msg)
             elif grb.levtype == "sol":
                 kind = LevelType.SOIL
             else:
                 if grb.levtype not in _unsupported_levtypes:
-                    logging.warning("Unsupported level type: %s", grb.levtype)
+                    logger.warning("Unsupported level type: %s", grb.levtype)
                     _unsupported_levtypes.add(grb.levtype)
                 continue
             attributes = {
@@ -102,7 +107,8 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
 
 def _make_grid(grb: Any) -> RegularGrid:
     if grb.gridType != "regular_ll":
-        raise ValueError(f"Invalid grid type: {grb.gridType}")
+        msg = f"Invalid grid type: {grb.gridType}"
+        raise ValueError(msg)
     delta_lat = grb.jDirectionIncrementInDegrees
     if not grb.jScansPositively:
         delta_lat = -delta_lat

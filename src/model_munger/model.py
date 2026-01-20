@@ -20,6 +20,8 @@ from model_munger.utils import (
 )
 from model_munger.version import __version__
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class ModelType:
@@ -37,7 +39,7 @@ class Location:
 class Model:
     def __init__(
         self,
-        type: ModelType,
+        model_type: ModelType,
         location: Location,
         data: dict[str, npt.NDArray],
         units: dict[str, str] | None = None,
@@ -45,7 +47,7 @@ class Model:
         comments: dict[str, str] | None = None,
         history: list[str] | None = None,
     ) -> None:
-        self.type = type
+        self.type = model_type
         self.location = location
         self.history = history if history is not None else []
         self.sources = sources.copy() if sources is not None else {}
@@ -54,7 +56,7 @@ class Model:
         n_time = len(data["time"])
         for key, raw_value in data.items():
             if key != "time" and key not in ATTRIBUTES:
-                logging.info("Unsupported key %s", key)
+                logger.info("Unsupported key %s", key)
                 continue
             value = raw_value
             if key != "time" and units and units[key] != ATTRIBUTES[key].units:
@@ -97,7 +99,11 @@ class Model:
             self.sources["sfc_height"] = "Calculated from sfc_geopotential"
 
     def _calculate_q(
-        self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str
+        self,
+        q_key: str,
+        rh_key: str,
+        pressure_key: str,
+        temperature_key: str,
     ) -> None:
         """Calculate specific humidity if missing.
 
@@ -121,7 +127,11 @@ class Model:
         )
 
     def _calculate_rh(
-        self, q_key: str, rh_key: str, pressure_key: str, temperature_key: str
+        self,
+        q_key: str,
+        rh_key: str,
+        pressure_key: str,
+        temperature_key: str,
     ) -> None:
         """Calculate relative humidity if missing.
 
@@ -243,7 +253,10 @@ class Model:
 
 
 def _convert_units(
-    key: str, values: npt.NDArray, units_from: str, units_to: str
+    key: str,
+    values: npt.NDArray,
+    units_from: str,
+    units_to: str,
 ) -> npt.NDArray:
     if units_from == "hPa" and units_to == "Pa":
         return values * HPA_TO_PA
@@ -251,4 +264,5 @@ def _convert_units(
         return values * HPA_TO_PA
     if units_from == "%" and units_to == "1":
         return values / 100
-    raise ValueError(f"Cannot convert '{key}' from '{units_from}' to '{units_to}'")
+    msg = f"Cannot convert '{key}' from '{units_from}' to '{units_to}'"
+    raise ValueError(msg)

@@ -60,7 +60,9 @@ ATTRIBUTES = {
         dimensions=("time", "level"),
     ),
     "horizontal_resolution": Metadata(
-        long_name="Horizontal resolution of model", units="km", dimensions=("time",)
+        long_name="Horizontal resolution of model",
+        units="km",
+        dimensions=("time",),
     ),
     "pressure": Metadata(
         units="Pa",
@@ -906,21 +908,33 @@ ATTRIBUTES = {
         dimensions=("time",),
     ),
     "standard_lifted_index": Metadata(
-        units="K", long_name="Standard lifted index", dimensions=("time",)
+        units="K",
+        long_name="Standard lifted index",
+        dimensions=("time",),
     ),
     "best_4layer_lifted_index": Metadata(
-        units="K", long_name="Best 4-layer lifted index", dimensions=("time",)
+        units="K",
+        long_name="Best 4-layer lifted index",
+        dimensions=("time",),
     ),
     "sfc_categorical_snow": Metadata(
-        units="1", long_name="Categorical snow", dimensions=("time",)
+        units="1",
+        long_name="Categorical snow",
+        dimensions=("time",),
     ),
     "sfc_categorical_ice": Metadata(
-        units="1", long_name="Categorical ice", dimensions=("time",)
+        units="1",
+        long_name="Categorical ice",
+        dimensions=("time",),
     ),
     "sfc_categorical_freezing_rain": Metadata(
-        units="1", long_name="Categorical freezing rain", dimensions=("time",)
+        units="1",
+        long_name="Categorical freezing rain",
+        dimensions=("time",),
     ),
     "sfc_categorical_rain": Metadata(
-        units="1", long_name="Categorical rain", dimensions=("time",)
+        units="1",
+        long_name="Categorical rain",
+        dimensions=("time",),
     ),
 }

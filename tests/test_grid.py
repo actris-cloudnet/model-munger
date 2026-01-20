@@ -1,3 +1,5 @@
+import numpy as np
+
 from model_munger.grid import RegularGrid
 
 
@@ -7,6 +9,7 @@ def test_gdas1_grid() -> None:
     assert idx == 0
     assert lat == -90
     assert lon == 0
+    assert np.isclose(res, 6.80897028e-12)
 
 
 def test_ecmwf_open_grid() -> None:
@@ -15,3 +18,4 @@ def test_ecmwf_open_grid() -> None:
     assert idx == 0
     assert lat == 90
     assert lon == 180
+    assert np.isclose(res, 1.70224257e-12)

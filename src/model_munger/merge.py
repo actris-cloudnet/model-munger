@@ -30,7 +30,7 @@ def merge_models(models: list[Model]) -> Model:
     tindex = tindex[findex]
 
     # Sort and find unique times while keeping the smallest forecast time.
-    utime, uindex = np.unique(time, return_index=True)
+    _utime, uindex = np.unique(time, return_index=True)
     mindex = mindex[uindex]
     tindex = tindex[uindex]
 
@@ -50,7 +50,7 @@ def merge_models(models: list[Model]) -> Model:
             if key in models[i].data:
                 values.append(models[i].data[key][t : t + 1])
             else:
-                shape = (1,) + models[0].data[key].shape[1:]
+                shape = (1, *models[0].data[key].shape[1:])
                 values.append(ma.masked_all(shape))
         data[key] = ma.concatenate(values)
 

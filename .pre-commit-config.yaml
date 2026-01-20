@@ -17,9 +17,9 @@ repos:
       - id: trailing-whitespace
         exclude: ^tests/unit/data/
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11
+    rev: v0.14.11
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: ["--fix"]
       - id: ruff-format
   - repo: local
@@ -36,11 +36,11 @@ repos:
       - id: prettier
         exclude: ^docs/source/_templates/
   - repo: https://github.com/pappasam/toml-sort
-    rev: v0.24.2
+    rev: v0.24.3
     hooks:
       - id: toml-sort-fix
   - repo: https://github.com/crate-ci/typos
-    rev: v1.36.0
+    rev: v1.42.0
     hooks:
       - id: typos
         args: ["--force-exclude"]
