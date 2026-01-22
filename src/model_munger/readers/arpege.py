@@ -50,8 +50,11 @@ units_map = {
 }
 
 
-def read_arpege(file: str | PathLike, location: Location) -> Model:
-    """Read ARPEGE netCDF generated using lfa2nc."""
+def _read_lfa2nc(
+    file: str | PathLike,
+    location: Location,
+    model_type: ModelType,
+) -> Model:
     with netCDF4.Dataset(file) as nc:
         data: dict = {}
         units = {}
@@ -97,7 +100,12 @@ def read_arpege(file: str | PathLike, location: Location) -> Model:
             f"{nc.NetCdf_creation_date} - {Path(file).name} created by {nc.creator}",
         ]
 
-        return Model(ARPEGE, location, data, units, history=history)
+        return Model(model_type, location, data, units, history=history)
+
+
+def read_arpege(file: str | PathLike, location: Location) -> Model:
+    """Read ARPEGE netCDF generated using lfa2nc."""
+    return _read_lfa2nc(file, location, ARPEGE)
 
 
 def _normalize_units(units: str) -> str:
