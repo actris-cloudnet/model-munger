@@ -127,7 +127,7 @@ ATTRIBUTES = {
     "qs": Metadata(
         units="1",
         long_name="Gridbox-mean snow mixing ratio",
-        standard_name="mass_fraction_of_snow_ice_in_air",
+        standard_name="mass_fraction_of_snow_in_air",
         dimensions=("time", "level"),
     ),
     "qr": Metadata(
@@ -217,8 +217,9 @@ ATTRIBUTES = {
         dimensions=("time", "level"),
     ),
     "tke": Metadata(
-        units="J m-2",
+        units="m2 s-2",
         long_name="Turbulent kinetic energy",
+        standard_name="specific_turbulent_kinetic_energy_of_air",
         dimensions=("time", "level"),
     ),
     "turb_mom_coeff": Metadata(
@@ -679,6 +680,12 @@ ATTRIBUTES = {
     "sfc_rh_2m": Metadata(
         units="1",
         long_name="Relative humidity at 2m",
+        dimensions=("time",),
+    ),
+    "sfc_q": Metadata(
+        units="1",
+        long_name="Surface specific humidity",
+        standard_name="surface_specific_humidity",
         dimensions=("time",),
     ),
     "sfc_q_2m": Metadata(
