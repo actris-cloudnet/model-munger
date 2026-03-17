@@ -61,5 +61,6 @@ def merge_models(models: list[Model]) -> Model:
         data,
         sources=models[0].sources,
         comments=models[0].comments,
+        dimensions=models[0].dimensions,
         history=[line for m in used_models for line in m.history],
     )

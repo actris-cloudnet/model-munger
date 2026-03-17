@@ -1,5 +1,6 @@
 import datetime
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from os import PathLike
@@ -45,6 +46,7 @@ class Model:
         units: dict[str, str] | None = None,
         sources: dict[str, str] | None = None,
         comments: dict[str, str] | None = None,
+        dimensions: Mapping[str, tuple[str, ...]] | None = None,
         history: list[str] | None = None,
     ) -> None:
         self.type = model_type
@@ -52,6 +54,7 @@ class Model:
         self.history = history if history is not None else []
         self.sources = sources.copy() if sources is not None else {}
         self.comments = comments if comments is not None else {}
+        self.dimensions = dict(dimensions) if dimensions is not None else {}
         self.data: dict[str, npt.NDArray] = {}
         n_time = len(data["time"])
         for key, raw_value in data.items():
@@ -203,6 +206,9 @@ class Model:
             if "soil_depth" in self.data:
                 n_time, n_soil = self.data["soil_depth"].shape
                 nc.createDimension("soil_level", n_soil)
+            if "flux_level" in self.data:
+                n_flux = self.data["flux_level"].size
+                nc.createDimension("flux_level", n_flux)
 
             ncvar = nc.createVariable("time", "f4", "time", zlib=True)
             ncvar.long_name = "Hours UTC"
@@ -224,7 +230,7 @@ class Model:
                     data_type = "f4"
                 fill_value = netCDF4.default_fillvals[data_type]
                 values = self.data[key]
-                dimensions = meta.dimensions
+                dimensions = self.dimensions.get(key, meta.dimensions)
                 if key in ("latitude", "longitude") and np.all(values == values[0]):
                     values = values[0]
                     dimensions = ()

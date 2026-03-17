@@ -18,8 +18,10 @@ sfc_keymap = {
     "T_S": "sfc_temp",
     "T_SNOW": "sfc_temp_snow",
     "U10M": "sfc_wind_u_10m",
+    "UMFL_S": "sfc_turb_mom_u",
     "V10M": "sfc_wind_v_10m",
     "VIS": "sfc_visibility",
+    "VMFL_S": "sfc_turb_mom_v",
     "W_SNOW": "sfc_weg_snow",
 }
 
@@ -35,6 +37,8 @@ keymap = {
     "REL_HUM": "rh",
     "T": "temperature",
     "TKE": "tke",
+    "TKVH": "turb_heat_coeff",
+    "TKVM": "turb_mom_coeff",
     "U": "uwind",
     "V": "vwind",
     "W": "wwind",
@@ -43,9 +47,11 @@ keymap = {
 
 units_map = {
     "-": "1",
+    "N m-2": "kg m-1 s-2",
     "kg kg-1": "1",
     "kg/kg": "1",
     "m H2O": "m",
+    "m**2/s": "m2 s-1",
     "m/s": "m s-1",
     "m^2/s^2": "m2 s-2",
 }
@@ -80,6 +86,7 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
     data = {}
     units = {}
     sources = {}
+    dimensions = {}
 
     with netCDF4.Dataset(file) as nc:
         station_names = netCDF4.chartostring(nc["station_name"][:]).tolist()
@@ -103,6 +110,10 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
                 var_units[src_ind], var_units[src_ind]
             )
             sources[keymap[src_name]] = src_name
+            dimensions[keymap[src_name]] = (
+                "time",
+                "level" if nlevs == 65 else "flux_level",
+            )
         for src_ind, src_name in enumerate(sfcvar_names):
             if src_name not in sfc_keymap:
                 continue
@@ -113,10 +124,6 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
             )
             sources[dst_name] = src_name
 
-        for key in ("wwind", "tke"):
-            data[key] = (data[key][:, :-1] + data[key][:, 1:]) / 2
-            sources[key] += " interpolated from half to full levels"
-
         data["time"] = np.array(
             [
                 datetime.datetime.strptime(value, "%Y%m%dT%H%M%SZ")
@@ -125,16 +132,27 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         )
         n_time = len(data["time"])
 
+        sfc_height = nc["station_hsurf"][station_ind]
+
         t_ind = var_names.index("T")
         n_level = var_nlevs[t_ind]
-        sfc_height = nc["station_hsurf"][station_ind]
         height = nc["heights"][:n_level, t_ind, station_ind][::-1] - sfc_height
         data["height"] = np.tile(height, (n_time, 1))
         units["height"] = "m"
         sources["height"] = "Calculated from HHL - HSURF"
 
-        data["model_level"] = np.arange(n_level, 0, -1, dtype=np.int32)
+        data["model_level"] = np.arange(n_level, 0, -1, dtype=np.int16)
         units["model_level"] = "1"
+
+        w_ind = var_names.index("W")
+        n_flux = var_nlevs[w_ind]
+        flx_height = nc["heights"][:n_flux, w_ind, station_ind][::-1] - sfc_height
+        data["flx_height"] = np.tile(flx_height, (n_time, 1))
+        units["flx_height"] = "m"
+        sources["flx_height"] = "Calculated from HHL - HSURF"
+
+        data["flux_level"] = np.arange(n_flux, 0, -1, dtype=np.int16)
+        units["flux_level"] = "1"
 
         data["latitude"] = np.repeat(nc["station_lat"][station_ind], n_time)
         units["latitude"] = "degree_north"
@@ -154,6 +172,7 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         data,
         units=units,
         sources=sources,
+        dimensions=dimensions,
     )
 
 

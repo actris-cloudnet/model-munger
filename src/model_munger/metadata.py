@@ -47,17 +47,21 @@ ATTRIBUTES = {
     ),
     "flux_level": Metadata(
         units="1",
-        long_name="Flux level",
-        standard_name="flux_level_number",
+        long_name="Model flux level",
         axis="Z",
         positive="down",
-        dimensions=("level",),
+        dimensions=("flux_level",),
     ),
     "height": Metadata(
         units="m",
         long_name="Height above ground",
         standard_name="height",
         dimensions=("time", "level"),
+    ),
+    "flx_height": Metadata(
+        units="m",
+        long_name="Height above ground",
+        dimensions=("time", "flux_level"),
     ),
     "horizontal_resolution": Metadata(
         long_name="Horizontal resolution of model",
