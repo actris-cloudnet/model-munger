@@ -25,7 +25,7 @@ def test_model_latlon_scalar(tmp_path: Path) -> None:
         HELSINKI,
         {"time": time, "height": height, "latitude": latitude, "longitude": longitude},
     )
-    model.screen_forecast_time(0, 12)
+    model.screen_forecast_time(0, 13)
     assert model.data["time"].shape == (13,)
     assert model.data["height"].shape == (13, 3)
     assert model.data["latitude"].shape == (13,)
@@ -54,7 +54,7 @@ def test_model_latlon_array(tmp_path: Path) -> None:
         HELSINKI,
         {"time": time, "height": height, "latitude": latitude, "longitude": longitude},
     )
-    model.screen_forecast_time(0, 12)
+    model.screen_forecast_time(0, 13)
     assert model.data["time"].shape == (13,)
     assert model.data["height"].shape == (13, 3)
     assert model.data["latitude"].shape == (13,)

@@ -164,10 +164,10 @@ class Model:
         mask = (time >= t_min) & (time <= t_max)
         self._screen_data(mask)
 
-    def screen_forecast_time(self, t_min: int, t_max: int) -> None:
-        """Screen forecast time to given range (inclusive)."""
+    def screen_forecast_time(self, t_min: float, t_max: float) -> None:
+        """Screen forecast times between t_min (include) and t_max (exclude)."""
         time = self.data["forecast_time"]
-        mask = (time >= t_min) & (time <= t_max)
+        mask = (time >= t_min) & (time < t_max)
         self._screen_data(mask)
 
     def _screen_data(self, mask: npt.NDArray[np.bool]) -> None:
