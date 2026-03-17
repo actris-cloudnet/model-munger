@@ -22,7 +22,7 @@ sfc_keymap = {
     "V10M": "sfc_wind_v_10m",
     "VIS": "sfc_visibility",
     "VMFL_S": "sfc_turb_mom_v",
-    "W_SNOW": "sfc_weg_snow",
+    "W_SNOW": "sfc_weq_snow",
 }
 
 keymap = {

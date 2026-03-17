@@ -849,7 +849,7 @@ ATTRIBUTES = {
         long_name="Surface visibility",
         dimensions=("time",),
     ),
-    "sfc_weg_snow": Metadata(
+    "sfc_weq_snow": Metadata(
         units="m",
         long_name="Surface water equivalent snow depth",
         dimensions=("time",),
