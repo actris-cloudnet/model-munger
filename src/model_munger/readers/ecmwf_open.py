@@ -83,7 +83,15 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
 
         history = nc.history.splitlines()
 
-        return Model(ECMWF_OPEN, location, data, units, sources, comments, history)
+        return Model(
+            ECMWF_OPEN,
+            location,
+            data,
+            units,
+            sources=sources,
+            comments=comments,
+            history=history,
+        )
 
 
 def _normalize_units(units: str) -> str:

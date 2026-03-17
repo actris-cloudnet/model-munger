@@ -44,6 +44,7 @@ class Model:
         location: Location,
         data: dict[str, npt.NDArray],
         units: dict[str, str] | None = None,
+        *,
         sources: dict[str, str] | None = None,
         comments: dict[str, str] | None = None,
         dimensions: Mapping[str, tuple[str, ...]] | None = None,

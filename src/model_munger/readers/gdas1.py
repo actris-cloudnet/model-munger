@@ -115,7 +115,7 @@ def read_gdas1(file: str | PathLike, location: Location) -> Model:
             GDAS1,
             location,
             data,
-            units=units,
+            units,
             sources=sources,
             comments=comments,
             history=history,

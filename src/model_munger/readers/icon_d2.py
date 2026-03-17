@@ -170,7 +170,7 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         ICON_D2,
         location,
         data,
-        units=units,
+        units,
         sources=sources,
         dimensions=dimensions,
     )
