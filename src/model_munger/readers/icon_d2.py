@@ -51,6 +51,10 @@ units_map = {
 }
 
 
+class StationMissingError(Exception):
+    pass
+
+
 def read_icon_d2(file: str | PathLike, station_name: str, location: Location) -> Model:
     """Read ICON meteogram file.
 
@@ -58,6 +62,12 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         file: Path to ICON meteogram file.
         station_name: Station name to extract from the meteogram file.
         location: Location to use for the given station name.
+
+    Returns:
+        Model data.
+
+    Raises:
+        StationMissingError: If given station doesn't exist.
 
     References:
         Reinert et al. (2026). DWD Database Reference for the Global and
@@ -78,7 +88,11 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         var_nlevs = nc["var_nlevs"][:]
         sfcvar_names = netCDF4.chartostring(nc["sfcvar_name"][:]).tolist()
         sfcvar_units = netCDF4.chartostring(nc["sfcvar_unit"][:]).tolist()
-        station_ind = station_names.index(station_name)
+        try:
+            station_ind = station_names.index(station_name)
+        except ValueError as err:
+            msg = f"Station {station_name} not in file"
+            raise StationMissingError(msg) from err
         for src_ind, src_name in enumerate(var_names):
             if src_name not in keymap:
                 continue
