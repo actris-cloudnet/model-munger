@@ -25,7 +25,7 @@ keymap = {
     "q_soil": "soil_moisture",
     "qi": "qi",
     "ql": "ql",
-    "snow": "sfc_weg_snow",
+    "snow": "sfc_weq_snow",
     "t": "temperature",
     "t2m": "sfc_temp_2m",
     "t_soil": "soil_temperature",
