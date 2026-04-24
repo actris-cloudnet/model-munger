@@ -100,12 +100,25 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         except ValueError as err:
             msg = f"Station {station_name} not in file"
             raise StationMissingError(msg) from err
+
+        date_values = netCDF4.chartostring(nc["date"][:])
+        time_ind = date_values != ""
+        data["time"] = np.array(
+            [
+                datetime.datetime.strptime(value, "%Y%m%dT%H%M%SZ")
+                for value in date_values[time_ind]
+            ]
+        )
+        n_time = len(data["time"])
+
         for src_ind, src_name in enumerate(var_names):
             if src_name not in keymap:
                 continue
             dst_name = keymap[src_name]
             nlevs = var_nlevs[src_ind]
-            data[dst_name] = nc["values"][:, :nlevs, src_ind, station_ind][:, ::-1]
+            data[dst_name] = nc["values"][time_ind, :nlevs, src_ind, station_ind][
+                :, ::-1
+            ]
             units[keymap[src_name]] = units_map.get(
                 var_units[src_ind], var_units[src_ind]
             )
@@ -118,19 +131,11 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
             if src_name not in sfc_keymap:
                 continue
             dst_name = sfc_keymap[src_name]
-            data[dst_name] = nc["sfcvalues"][:, src_ind, station_ind]
+            data[dst_name] = nc["sfcvalues"][time_ind, src_ind, station_ind]
             units[dst_name] = units_map.get(
                 sfcvar_units[src_ind], sfcvar_units[src_ind]
             )
             sources[dst_name] = src_name
-
-        data["time"] = np.array(
-            [
-                datetime.datetime.strptime(value, "%Y%m%dT%H%M%SZ")
-                for value in netCDF4.chartostring(nc["date"][:])
-            ]
-        )
-        n_time = len(data["time"])
 
         sfc_height = nc["station_hsurf"][station_ind]
 
