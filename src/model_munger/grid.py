@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-
-from model_munger.utils import EARTH_RADIUS
+from atmoslib.constants import EARTH_RADIUS
 
 
 class Grid:

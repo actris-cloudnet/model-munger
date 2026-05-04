@@ -1,11 +1,13 @@
 from os import PathLike
 
+import atmoslib
 import netCDF4
 import numpy as np
+from atmoslib.constants import MW_RATIO
 from cftime import num2pydate
 
 from model_munger.model import Location, Model, ModelType
-from model_munger.utils import calc_geometric_height
+from model_munger.utils import calc_saturation_vapor_pressure
 
 keymap = {
     "PRSS": "sfc_pressure",
@@ -96,16 +98,21 @@ def read_gdas1(file: str | PathLike, location: Location) -> Model:
                 if len(src) == 4:
                     sources[dst] = src
 
+        _calc_q(data, units, comments, "q", "temperature", "pressure", "rh")
+        _calc_q(
+            data, units, comments, "sfc_q_2m", "sfc_temp", "sfc_pressure", "sfc_rh_2m"
+        )
+
         nctime = nc["time"]
         data["time"] = num2pydate(nctime[:], units=nctime.units)
 
         data["pressure"] = np.tile(data["pressure"], (len(data["time"]), 1))
 
-        data["height"] = calc_geometric_height(nc["HGTS"][:])
+        data["height"] = atmoslib.geometric_height(nc["HGTS"][:])
         units["height"] = "m"
         sources["height"] = "HGTS converted from gpm to m"
 
-        data["sfc_height"] = calc_geometric_height(nc["SHGT"][:])
+        data["sfc_height"] = atmoslib.geometric_height(nc["SHGT"][:])
         units["sfc_height"] = "m"
         sources["sfc_height"] = "SHGT converted from gpm to m"
 
@@ -120,6 +127,36 @@ def read_gdas1(file: str | PathLike, location: Location) -> Model:
             comments=comments,
             history=history,
         )
+
+
+def _calc_q(
+    data: dict,
+    units: dict,
+    comments: dict,
+    q_key: str,
+    t_key: str,
+    p_key: str,
+    rh_key: str,
+) -> None:
+    """Calculate specific humidity from relative humidity.
+
+    References:
+        Cai, J. (2019). Humidity Measures.
+        https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
+    """
+    t = data[t_key]
+    p = data[p_key]
+    rh = data[rh_key]
+
+    # The thresholds are publicly documented but the exact method of blending is
+    # not. Let's assume quadratic interpolation used by ECMWF.
+    es = calc_saturation_vapor_pressure(t, 253.15, 273.15)
+    e = rh * es
+    q = (MW_RATIO * e) / (p - (1 - MW_RATIO) * e)
+
+    data[q_key] = q
+    units[q_key] = "1"
+    comments[q_key] = f"Calculated from {t_key}, {p_key} and {rh_key}"
 
 
 GDAS1 = ModelType(

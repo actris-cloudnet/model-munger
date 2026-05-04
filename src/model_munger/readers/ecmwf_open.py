@@ -1,12 +1,13 @@
 import re
 from os import PathLike
 
+import atmoslib
 import netCDF4
 import numpy as np
 from cftime import num2pydate
 
 from model_munger.model import Location, Model, ModelType
-from model_munger.utils import calc_geometric_height, ffill
+from model_munger.utils import ffill
 
 keymap = {
     "asn": "sfc_albedo_snow",
@@ -75,7 +76,7 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
             data["soil_depth"] = np.tile(soil_depth, (len(data["time"]), 1))
             units["soil_depth"] = "m"
 
-        data["height"] = calc_geometric_height(nc["gh"][:])
+        data["height"] = atmoslib.geometric_height(nc["gh"][:])
         units["height"] = "m"
         sources["height"] = (
             f"ECMWF parameter {nc['gh'].param_id} converted from gpm to m"

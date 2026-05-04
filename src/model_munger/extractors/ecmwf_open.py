@@ -7,10 +7,10 @@ from typing import Any, Literal
 
 import numpy as np
 import pygrib
+from atmoslib.constants import HPA_TO_PA
 
 from model_munger.grid import RegularGrid
 from model_munger.level import Level, LevelType
-from model_munger.utils import HPA_TO_PA
 
 SOURCES = {
     "ecmwf": "https://data.ecmwf.int/forecasts",

@@ -2,13 +2,14 @@ import datetime
 from os import PathLike
 from pathlib import Path
 
+import atmoslib
 import netCDF4
 import numpy as np
+from atmoslib.constants import G
 from cftime import num2pydate
 from numpy import ma
 
 from model_munger.model import Location, Model, ModelType
-from model_munger.utils import G, calc_geometric_height
 
 keymap = {
     "cc": "cloud_fraction",
@@ -71,7 +72,7 @@ def _read_lfa2nc(
         # Height in the input files appears to be geometric height above sea
         # level. Convert this to geometric height above ground based on surface
         # geopotential.
-        ground = calc_geometric_height(data["sfc_geopotential"] / G)
+        ground = atmoslib.geometric_height(data["sfc_geopotential"] / G)
         data["height"] = data["height"] - ground[:, np.newaxis]
 
         time = nc["time"]

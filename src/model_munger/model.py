@@ -5,18 +5,16 @@ from dataclasses import dataclass
 from datetime import timedelta
 from os import PathLike
 
+import atmoslib
 import netCDF4
 import numpy as np
 import numpy.typing as npt
+from atmoslib.constants import HPA_TO_PA, MW_RATIO, G
 from cftime import date2num
 
 from model_munger.metadata import ATTRIBUTES
 from model_munger.utils import (
-    HPA_TO_PA,
-    MW_RATIO,
-    G,
-    calc_geometric_height,
-    calc_saturated_vapor_pressure,
+    calc_saturation_vapor_pressure,
     calc_vertical_wind,
 )
 from model_munger.version import __version__
@@ -74,6 +72,7 @@ class Model:
                 self.data[key] = np.repeat(value, n_time)
             else:
                 self.data[key] = value
+
         if "forecast_time" not in self.data:
             init_time = self.data["time"][0]
             hour = timedelta(hours=1)
@@ -90,8 +89,6 @@ class Model:
             self.sources["wwind"] = (
                 "Calculated from omega, height and pressure using: w=omega*dz/dp"
             )
-        self._calculate_q("q", "rh", "pressure", "temperature")
-        self._calculate_q("sfc_q_2m", "sfc_rh_2m", "sfc_pressure", "sfc_temp_2m")
         self._calculate_rh("q", "rh", "pressure", "temperature")
         self._calculate_rh("sfc_q_2m", "sfc_rh_2m", "sfc_pressure", "sfc_temp_2m")
         if "cloud_fraction" in self.data:
@@ -99,36 +96,8 @@ class Model:
             frac[frac < 1e-4] = 0
         if "sfc_height" not in self.data and "sfc_geopotential" in self.data:
             geopotential_height = self.data["sfc_geopotential"] / G
-            self.data["sfc_height"] = calc_geometric_height(geopotential_height)
+            self.data["sfc_height"] = atmoslib.geometric_height(geopotential_height)
             self.sources["sfc_height"] = "Calculated from sfc_geopotential"
-
-    def _calculate_q(
-        self,
-        q_key: str,
-        rh_key: str,
-        pressure_key: str,
-        temperature_key: str,
-    ) -> None:
-        """Calculate specific humidity if missing.
-
-        References:
-            Cai, J. (2019). Humidity Measures.
-            https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
-        """
-        if (
-            q_key in self.data
-            or rh_key not in self.data
-            or pressure_key not in self.data
-            or temperature_key not in self.data
-        ):
-            return
-        es = calc_saturated_vapor_pressure(self.data[temperature_key])
-        e = self.data[rh_key] * es
-        p = self.data[pressure_key]
-        self.data[q_key] = (MW_RATIO * e) / (p - (1 - MW_RATIO) * e)
-        self.sources[q_key] = (
-            f"Calculated from {rh_key}, {temperature_key} and {pressure_key}"
-        )
 
     def _calculate_rh(
         self,
@@ -152,11 +121,17 @@ class Model:
             return
         p = self.data[pressure_key]
         q = self.data[q_key]
+        t = self.data[temperature_key]
         e = q * p / (MW_RATIO + (1 - MW_RATIO) * q)
-        es = calc_saturated_vapor_pressure(self.data[temperature_key])
+        es = calc_saturation_vapor_pressure(t, 250.16, 273.16)
         self.data[rh_key] = e / es
         self.sources[rh_key] = (
-            f"Calculated from {q_key}, {temperature_key} and {pressure_key}"
+            f"Calculated from {q_key}, {temperature_key} and {pressure_key}.\n"
+            "Following the definition by ECMWF, relative humidity is calculated\n"
+            "for saturation over water for temperatures over 0°C (273.15 K). At\n"
+            "temperatures below -23°C it is calculated for saturation over ice.\n"
+            "Between -23°C and 0°C this parameter is calculated by interpolating\n"
+            "between the ice and water values using a quadratic function."
         )
 
     def screen_time(self, date: datetime.date) -> None:

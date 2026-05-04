@@ -358,6 +358,11 @@ ATTRIBUTES = {
         standard_name="surface_air_pressure",
         dimensions=("time",),
     ),
+    "sfc_pressure_2m": Metadata(
+        units="Pa",
+        long_name="Pressure at 2m",
+        dimensions=("time",),
+    ),
     "sfc_pressure_amsl": Metadata(
         long_name="Surface pressure at mean sea level",
         units="Pa",

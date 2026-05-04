@@ -4,10 +4,10 @@ from collections.abc import Iterator
 from typing import BinaryIO
 
 import numpy as np
+from atmoslib.constants import HPA_TO_PA
 
 from model_munger.grid import RegularGrid
 from model_munger.level import Level, LevelType
-from model_munger.utils import HPA_TO_PA
 
 LONG_NAMES = {
     "PRSS": "Pressure at surface",

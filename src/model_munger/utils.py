@@ -1,44 +1,14 @@
 import datetime
 from typing import Final
 
+import atmoslib
 import numpy as np
 import numpy.typing as npt
 from numpy import ma
 from scipy.spatial import geometric_slerp
 
-EARTH_RADIUS: Final = 6_371_229
-"Radius of the Earth (m) as assumed in ECMWF IFS"
-
-G: Final = 9.80665
-"Earth's gravitational acceleration (m s-2)"
-
-MW_RATIO: Final = 0.62198
-"Ratio of the molecular weight of water vapor to dry air"
-
-T0: Final = 273.16
-"Triple point of water (K)"
-
-HPA_TO_PA: Final = 100
-"Multiplicative conversion factor from hehtopascal to pascal"
-
 M_TO_KM: Final = 1e-3
 "Multiplicative conversion factor from meter to kilometer"
-
-
-def calc_geometric_height(height: npt.NDArray) -> npt.NDArray:
-    """Convert geopotential height to geometric height.
-
-    Args:
-        height: Geopotential height (m)
-
-    Returns:
-        Geometric height (m)
-
-    References:
-        ECMWF (2023). ERA5: compute pressure and geopotential on model levels,
-        geopotential height and geometric height. https://confluence.ecmwf.int/x/JJh0CQ
-    """
-    return EARTH_RADIUS * height / (EARTH_RADIUS - height)
 
 
 def calc_vertical_wind(
@@ -63,39 +33,36 @@ def calc_vertical_wind(
     return omega * dz / dp
 
 
-def calc_saturated_vapor_pressure(temperature: npt.NDArray) -> npt.NDArray:
+def calc_saturation_vapor_pressure(
+    t: npt.NDArray, t_ice: float, t_water: float
+) -> npt.NDArray:
     """Calculate saturation vapor pressure over liquid or ice.
 
-    Based on the given temperature, the saturated vapor pressure is calculated
-    over liquid above freezing and over ice below freezing using Goff-Gratch
-    formulae.
+    Between t_ice and t_water, the saturation vapor pressure is interpolated
+    using a quadratic formula (ECMWF 2024, Eq. 7.99).
 
     Args:
-        temperature: Temperature (K).
+        t: Temperature (K).
+        t_ice: Temperature threshold for ice (K).
+        t_water: Temperature threshold for water (K).
 
     Returns:
         Saturation vapor pressure (Pa).
 
     References:
-        Vömel, H. (2016). Saturation vapor pressure formulations.
-        http://cires1.colorado.edu/~voemel/vp.html
+        ECMWF (2024). IFS Documentation CY49R1 - Part IV: Physical Processes.
+            https://doi.org/10.21957/c731ee1102
     """
-    ratio = T0 / temperature
-    inv_ratio = temperature / T0
-    liquid = HPA_TO_PA * 10 ** (
-        10.79574 * (1 - ratio)
-        - 5.02800 * np.log10(inv_ratio)
-        + 1.50475e-4 * (1 - 10 ** (-8.2969 * (inv_ratio - 1)))
-        + 0.42873e-3 * (10 ** (4.76955 * (1 - ratio)) - 1)
-        + 0.78614
-    )
-    ice = HPA_TO_PA * 10 ** (
-        -9.09718 * (ratio - 1)
-        - 3.56654 * np.log10(ratio)
-        + 0.876793 * (1 - inv_ratio)
-        + np.log10(6.1071)
-    )
-    return np.where(temperature < T0, ice, liquid)
+    is_ice = t <= t_ice
+    is_water = t >= t_water
+    is_blend = ~is_ice & ~is_water
+    a = np.empty_like(t)
+    a[is_ice] = 0
+    a[is_blend] = ((t[is_blend] - t_ice) / (t_water - t_ice)) ** 2
+    a[is_water] = 1
+    es_water = atmoslib.saturation_vapor_pressure(t, "liquid")
+    es_ice = atmoslib.saturation_vapor_pressure(t, "ice")
+    return a * es_water + (1 - a) * es_ice
 
 
 def ffill(values: npt.NDArray) -> npt.NDArray:
