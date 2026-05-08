@@ -1,9 +1,10 @@
 import datetime
-from typing import Final
+from typing import Any, Final, overload
 
 import atmoslib
 import numpy as np
 import numpy.typing as npt
+from atmoslib.constants import RS, G
 from numpy import ma
 from scipy.spatial import geometric_slerp
 
@@ -126,3 +127,116 @@ def slerp(
     end = spherical_to_cartesian(latitudes[i], longitudes[i])
     new_point = geometric_slerp(start, end, t)  # type: ignore[arg-type]
     return cartesian_to_spherical(*new_point)
+
+
+def calc_sigma_height(
+    ap: npt.NDArray[np.floating],
+    b: npt.NDArray[np.floating],
+    ps: npt.NDArray[np.floating],
+    t: npt.NDArray[np.floating],
+    q: npt.NDArray[np.floating],
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+    """Calculate pressure and height in hybrid sigma-pressure coordinate system.
+
+    Args:
+        ap: Reference pressure at full level (Pa).
+        b: Coefficient at full level (1).
+        ps: Surface pressure (Pa).
+        t: Temperature at full level (K).
+        q: Specific humidity at full level (kg kg-1).
+
+    Returns:
+        Pressure (Pa) and geopotential height above ground (gpm) at full level.
+    """
+    n_level = len(ap)
+    ap_half = np.empty(n_level + 1)
+    ap_half[n_level] = 0
+    b_half = np.empty(n_level + 1)
+    b_half[n_level] = 1
+    for i in range(n_level - 1, -1, -1):
+        ap_half[i] = 2 * ap[i] - ap_half[i + 1]
+        b_half[i] = 2 * b[i] - b_half[i + 1]
+
+    p_half = ap_half + b_half * ps[:, np.newaxis]
+    p = (p_half[:, 1:] + p_half[:, :-1]) / 2
+    tv = atmoslib.virtual_temperature(t, q)
+
+    z_half = np.zeros_like(p_half)
+    for i in range(n_level - 1, 0, -1):
+        z_half[:, i] = z_half[:, i + 1] + (RS * tv[:, i] / G) * np.log(
+            p_half[:, i + 1] / p_half[:, i]
+        )
+
+    z = (z_half[:, 1:] + z_half[:, :-1]) / 2
+    z[:, 0] = z_half[:, 1] + (RS * tv[:, 0] / G) * np.log(2)
+    return p, z
+
+
+class LCC:
+    """Lambert conformal conic projection."""
+
+    def __init__(
+        self,
+        standard_parallel: tuple[float, float],
+        origin_latitude: float,
+        central_meridian: float,
+        earth_radius: float,
+    ) -> None:
+        """Initialize Lambert conformal conic projection.
+
+        Args:
+            standard_parallel: Standard parallels (degrees).
+            origin_latitude: Latitude of projection origin (degrees).
+            central_meridian: Longitude of central meridian (degrees).
+            earth_radius: Earth radius (m).
+        """
+        if standard_parallel[0] != standard_parallel[1]:
+            msg = "Only one standard parallel is supported"
+            raise ValueError(msg)
+        self.R = earth_radius
+        self.lambda0 = central_meridian
+        phi0 = np.deg2rad(origin_latitude)
+        phi1 = np.deg2rad(standard_parallel[0])
+        self.n = np.sin(phi1)
+        self.F = np.cos(phi1) * np.tan(np.pi / 4 + phi1 / 2) ** self.n / self.n
+        self.rho0 = self.R * self.F / np.tan(np.pi / 4 + phi0 / 2) ** self.n
+
+    @overload
+    def project(self, lat: float, lon: float) -> tuple[Any, Any]: ...
+    @overload
+    def project(
+        self, lat: npt.ArrayLike, lon: npt.ArrayLike
+    ) -> tuple[npt.NDArray, npt.NDArray]: ...
+
+    def project(self, lat, lon):
+        """Project latitude and longitude.
+
+        Args:
+            lat: Latitude (degrees).
+            lon: Longitude (degrees).
+
+        Return:
+            Tuple of y and x coordinates.
+        """
+        phi = np.deg2rad(lat)
+        rho = self.R * self.F / np.tan(np.pi / 4 + phi / 2) ** self.n
+        theta = self.theta(lon)
+        x = rho * np.sin(theta)
+        y = self.rho0 - rho * np.cos(theta)
+        return y, x
+
+    @overload
+    def theta(self, lon: float) -> Any: ...
+    @overload
+    def theta(self, lon: npt.ArrayLike) -> npt.NDArray: ...
+
+    def theta(self, lon):
+        """Calculate grid convergence angle.
+
+        Args:
+            lon: Longitude (degrees).
+
+        Returns:
+            Grid convergence angle (radians).
+        """
+        return self.n * np.deg2rad(lon - self.lambda0)

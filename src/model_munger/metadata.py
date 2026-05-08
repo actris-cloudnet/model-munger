@@ -122,6 +122,12 @@ ATTRIBUTES = {
         standard_name="mass_fraction_of_cloud_liquid_water_in_air",
         dimensions=("time", "level"),
     ),
+    "qc": Metadata(
+        units="1",
+        long_name="Gridbox-mean condensed water mixing ratio",
+        standard_name="mass_fraction_of_cloud_condensed_water_in_air",
+        dimensions=("time", "level"),
+    ),
     "qi": Metadata(
         units="1",
         long_name="Gridbox-mean ice water mixing ratio",
@@ -365,13 +371,14 @@ ATTRIBUTES = {
     ),
     "sfc_pressure_amsl": Metadata(
         long_name="Surface pressure at mean sea level",
+        standard_name="air_pressure_at_mean_sea_level",
         units="Pa",
         dimensions=("time",),
     ),
     "sfc_geopotential": Metadata(
         units="m2 s-2",
         long_name="Geopotential",
-        standard_name="geopotential",
+        standard_name="surface_geopotential",
         dimensions=("time",),
     ),
     "sfc_height": Metadata(
@@ -777,7 +784,7 @@ ATTRIBUTES = {
         units="m s-1",
         dimensions=("time",),
     ),
-    "sfc_wwind_gust_10m": Metadata(
+    "sfc_vwind_gust_10m": Metadata(
         long_name="Meridional wind gust at 10 m",
         units="m s-1",
         dimensions=("time",),
@@ -852,6 +859,7 @@ ATTRIBUTES = {
     "sfc_visibility": Metadata(
         units="m",
         long_name="Surface visibility",
+        standard_name="visibility_in_air",
         dimensions=("time",),
     ),
     "sfc_weq_snow": Metadata(
@@ -914,13 +922,13 @@ ATTRIBUTES = {
     "sfc_cape": Metadata(
         units="J kg-1",
         long_name="Convective available potential energy (CAPE)",
-        standard_name="atmosphere_convective_available_potential_energy_wrt_surface",
+        standard_name="atmosphere_convective_available_potential_energy",
         dimensions=("time",),
     ),
     "sfc_cin": Metadata(
         units="J kg-1",
         long_name="Convective inhibition (CIN)",
-        standard_name="atmosphere_convective_inhibition_wrt_surface",
+        standard_name="atmosphere_convective_inhibition",
         dimensions=("time",),
     ),
     "standard_lifted_index": Metadata(

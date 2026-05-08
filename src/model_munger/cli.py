@@ -11,6 +11,7 @@ from model_munger.extract import (
     MobileLocation,
     write_netcdf,
 )
+from model_munger.extractors.arome_arctic import download_arome_arctic
 from model_munger.extractors.ecmwf_open import generate_ecmwf_url, read_ecmwf
 from model_munger.extractors.gdas1 import generate_gdas1_url, read_gdas1
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
@@ -57,14 +58,14 @@ def main() -> None:
     parser.add_argument(
         "-m",
         "--model",
-        choices=["ecmwf-open", "gdas1"],
+        choices=["ecmwf-open", "gdas1", "arome-arctic"],
         help="Which model to download and process.",
         required=True,
     )
     parser.add_argument(
         "--source",
         choices=["ecmwf", "noaa", "aws"],
-        help="Where to download ECMWF open data from.",
+        help="Where to download data from.",
     )
     parser.add_argument(
         "--submit",
@@ -162,6 +163,16 @@ def main() -> None:
                         extractor.add_level(level)
                     if args.no_keep:
                         path.unlink()
+
+                for raw in extractor.extract_profiles():
+                    outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
+                    outpath = output_dir / outfile
+                    print(outpath)
+                    write_netcdf(raw, outpath)
+                    if args.submit:
+                        submit_file(outpath, raw.location, date, raw.model)
+                    if args.no_keep:
+                        outpath.unlink()
             elif args.model == "gdas1":
                 model = GDAS1
                 source = args.source or "noaa"
@@ -192,15 +203,31 @@ def main() -> None:
                 if args.no_keep and (date == args.stop or url != next_url):
                     path.unlink()
 
-            for raw in extractor.extract_profiles():
-                outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
-                outpath = output_dir / outfile
-                print(outpath)
-                write_netcdf(raw, outpath)
-                if args.submit:
-                    submit_file(outpath, raw.location, date, raw.model)
-                if args.no_keep:
-                    outpath.unlink()
+                for raw in extractor.extract_profiles():
+                    outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
+                    outpath = output_dir / outfile
+                    print(outpath)
+                    write_netcdf(raw, outpath)
+                    if args.submit:
+                        submit_file(outpath, raw.location, date, raw.model)
+                    if args.no_keep:
+                        outpath.unlink()
+            elif args.model == "arome-arctic":
+                date_id = f"{date:%Y%m%d}{run:02}0000"
+                for kind in ("sfc", "ml"):
+                    for raw in download_arome_arctic(date, run, kind, locations):
+                        outfile = (
+                            f"{date_id}_{raw.location.id}_{raw.model.id}_{kind}.nc"
+                        )
+                        outpath = output_dir / outfile
+                        print(outpath)
+                        write_netcdf(raw, outpath)
+                        if args.submit:
+                            submit_file(outpath, raw.location, date, raw.model)
+                        if args.no_keep:
+                            outpath.unlink()
+            else:
+                raise NotImplementedError
 
         date += datetime.timedelta(days=1)
 

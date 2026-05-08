@@ -87,3 +87,33 @@ def test_slerp_antimeridian(
     longitudes = [179.0, -179.0]
     actual = utils.slerp(time, times, latitudes, longitudes)
     assert_allclose(actual, expected)
+
+
+def test_lcc_arome_arctic() -> None:
+    lambert = utils.LCC(
+        standard_parallel=(77.5, 77.5),
+        origin_latitude=77.5,
+        central_meridian=-25.0,
+        earth_radius=6371000.0,
+    )
+    lat = np.array(
+        [
+            83.50214473501416,
+            67.30690272001273,
+            86.4864903222137,
+            81.94154783751998,
+            67.80716170197809,
+        ]
+    )
+    lon = np.array(
+        [
+            21.69077397491855,
+            13.067721689232352,
+            54.799042559467956,
+            40.34153934171771,
+            5.018405791993356,
+        ]
+    )
+    y = np.array([892014.3, -620485.7, 1327014.2, 1007014.3, -762985.7])
+    x = np.array([531120.94, 1541120.9, 398620.94, 823620.94, 1221120.9])
+    assert_allclose(lambert.project(lat, lon), (y, x))
