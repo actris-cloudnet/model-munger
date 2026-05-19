@@ -16,7 +16,7 @@ SOURCES = {
     "ecmwf": "https://data.ecmwf.int/forecasts",
     "aws": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
 }
-_unsupported_levtypes = set()
+_unsupported_levtypes: set[str] = set()
 
 logger = logging.getLogger(__name__)
 
