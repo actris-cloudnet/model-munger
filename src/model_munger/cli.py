@@ -94,12 +94,16 @@ def main() -> None:
     del args.date
 
     if args.sites:
+        site_ids = {site for site in args.sites if site != "cloudnet"}
+        if "cloudnet" in args.sites:
+            for site in api_client.sites("cloudnet"):
+                site_ids.add(site.id)
         all_sites = api_client.sites()
-        invalid_ids = set(args.sites) - {site.id for site in all_sites}
+        invalid_ids = set(site_ids) - {site.id for site in all_sites}
         if invalid_ids:
             parser.error("Invalid sites: " + ",".join(invalid_ids))
             sys.exit(1)
-        sites = [site for site in all_sites if site.id in args.sites]
+        sites = [site for site in all_sites if site.id in site_ids]
     else:
         sites = api_client.sites("cloudnet")
 
