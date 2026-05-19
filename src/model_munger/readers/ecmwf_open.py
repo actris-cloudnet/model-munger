@@ -10,15 +10,38 @@ from model_munger.model import Location, Model, ModelType
 from model_munger.utils import ffill
 
 keymap = {
-    "asn": "sfc_albedo_snow",
-    "d2m": "sfc_dewpoint_temp_2m",
-    "fg10": "sfc_wind_gust_10m",
     "horizontal_resolution": "horizontal_resolution",
     "latitude": "latitude",
     "longitude": "longitude",
+    "pl_q": "q",
+    "pl_r": "rh",
+    "pl_t": "temperature",
+    "pl_u": "uwind",
+    "pl_v": "vwind",
+    "pl_w": "omega",
+    "pressure": "pressure",
+    "sfc_asn": "sfc_albedo_snow",
+    "sfc_d2m": "sfc_dewpoint_temp_2m",
+    "sfc_fg10": "sfc_wind_gust_10m",
+    "sfc_lsm": "sfc_land_cover",
+    "sfc_msl": "sfc_pressure_amsl",
+    "sfc_skt": "sfc_skin_temp",
+    "sfc_sp": "sfc_pressure",
+    "sfc_t2m": "sfc_temp_2m",
+    "sfc_tcw": "total_column_water",
+    "sfc_tcwv": "total_column_water_vapour",
+    "sfc_tprate": "sfc_ls_rainrate",
+    "sfc_u10": "sfc_wind_u_10m",
+    "sfc_v10": "sfc_wind_v_10m",
+    "sfc_z": "sfc_geopotential",
+    "sol_sot": "soil_temperature",
+    "sol_vsw": "soil_moisture",
+    # Legacy names used by model-munger <= 0.3.10:
+    "asn": "sfc_albedo_snow",
+    "d2m": "sfc_dewpoint_temp_2m",
+    "fg10": "sfc_wind_gust_10m",
     "lsm": "sfc_land_cover",
     "msl": "sfc_pressure_amsl",
-    "pressure": "pressure",
     "q": "q",
     "r": "rh",
     "skt": "sfc_skin_temp",
@@ -76,11 +99,10 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
             data["soil_depth"] = np.tile(soil_depth, (len(data["time"]), 1))
             units["soil_depth"] = "m"
 
-        data["height"] = atmoslib.geometric_height(nc["gh"][:])
+        ghvar = nc["pl_gh"] if "pl_gh" in nc.variables else nc["gh"]
+        data["height"] = atmoslib.geometric_height(ghvar[:])
         units["height"] = "m"
-        sources["height"] = (
-            f"ECMWF parameter {nc['gh'].param_id} converted from gpm to m"
-        )
+        sources["height"] = f"ECMWF parameter {ghvar.param_id} converted from gpm to m"
 
         history = nc.history.splitlines()
 

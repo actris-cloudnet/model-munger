@@ -20,6 +20,8 @@ _unsupported_levtypes = set()
 
 logger = logging.getLogger(__name__)
 
+DATE_CYCLE_50R1 = datetime.date(2026, 5, 12)
+
 
 def generate_ecmwf_url(
     date: datetime.date,
@@ -40,7 +42,7 @@ def generate_ecmwf_url(
     """
     date_str = date.strftime("%Y%m%d")
     run_str = str(run).zfill(2)
-    stream = "oper" if run in (0, 12) else "scda"
+    stream = "scda" if date < DATE_CYCLE_50R1 and run in (6, 18) else "oper"
     if source not in SOURCES:
         msg = f"Invalid source: {source}"
         raise ValueError(msg)
@@ -92,11 +94,15 @@ def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
             }
             if "cfName" in grb.keys() and grb.cfName != "unknown":  # noqa: SIM118
                 attributes["standard_name"] = grb.cfName
-            time_invariant = grb.shortName in ("z", "slor", "sdor")
+            time_invariant = grb.levtype == "sfc" and grb.shortName in (
+                "z",
+                "slor",
+                "sdor",
+            )
             yield Level(
                 kind=kind,
                 level_no=level,
-                variable=grb.cfVarName,
+                variable=grb.levtype + "_" + grb.cfVarName,
                 values=np.ravel(grb.values),
                 grid=_make_grid(grb),
                 time=time,
