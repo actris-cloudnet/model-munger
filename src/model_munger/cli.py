@@ -17,6 +17,8 @@ from model_munger.extractors.gdas1 import generate_gdas1_url, read_gdas1
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
 from model_munger.readers.gdas1 import GDAS1
 
+SITE_TYPES = ("cloudnet", "campaign", "weather-radar", "model")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -95,10 +97,13 @@ def main() -> None:
     del args.date
 
     if args.sites:
-        site_ids = {site for site in args.sites if site != "cloudnet"}
-        if "cloudnet" in args.sites:
-            for site in api_client.sites("cloudnet"):
-                site_ids.add(site.id)
+        site_ids = set()
+        for site_id in args.sites:
+            if site_id in SITE_TYPES:
+                for site in api_client.sites(site_id):
+                    site_ids.add(site.id)
+            else:
+                site_ids.add(site_id)
         all_sites = api_client.sites()
         invalid_ids = set(site_ids) - {site.id for site in all_sites}
         if invalid_ids:

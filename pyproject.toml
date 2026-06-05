@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
   "atmoslib",
-  "cloudnet-api-client",
+  "cloudnet-api-client>=0.12.10",
   "netCDF4",
   "pygrib",
   "requests",
