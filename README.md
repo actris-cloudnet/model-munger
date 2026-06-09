@@ -8,14 +8,14 @@ output netCDF files.
 
 ## Supported models
 
-| Model                                                                                 | Horizontal resolution | Vertical resolution | Temporal resolution | Download                                 |
-| ------------------------------------------------------------------------------------- | --------------------- | ------------------- | ------------------- | ---------------------------------------- |
-| AROME                                                                                 | Native                | 90 model levels     | 1 hour              | Not supported                            |
-| [AROME-Arctic](https://www.met.no/en/projects/The-weather-model-AROME-Arctic)         | 2.5 km                | 65 model levels     | 1 hour              | Since 2015                               |
-| [ARPEGE](https://www.umr-cnrm.fr/spip.php?article121&lang=en)                         | Native                | 105 model levels    | 1 hour              | Not supported                            |
-| [ECMWF open data](https://www.ecmwf.int/en/forecasts/datasets/open-data)              | 0.25 degrees          | 13 pressure levels  | 3 hours             | Last days from ECMWF, few years from AWS |
-| [GDAS1](https://www.ready.noaa.gov/gdas1.php)                                         | 1 degree              | 23 pressure levels  | 3 hours             | Since December 2004                      |
-| [ICON-D2](https://www.dwd.de/EN/ourservices/nwp_forecast_data/nwp_forecast_data.html) | Native                | 65 model levels     | 15 minutes          | Not supported                            |
+| Model                                                                                                       | Horizontal resolution | Vertical resolution | Temporal resolution | Download                                 |
+| ----------------------------------------------------------------------------------------------------------- | --------------------- | ------------------- | ------------------- | ---------------------------------------- |
+| [AROME](https://meteofrance.com/actualites-et-dossiers/comprendre-la-meteo/les-modeles-de-prevision-meteo)  | Native                | 90 model levels     | 1 hour              | Not supported                            |
+| [AROME-Arctic](https://www.met.no/en/projects/The-weather-model-AROME-Arctic)                               | 2.5 km                | 65 model levels     | 1 hour              | Since 2015                               |
+| [ARPEGE](https://meteofrance.com/actualites-et-dossiers/comprendre-la-meteo/les-modeles-de-prevision-meteo) | Native                | 105 model levels    | 1 hour              | Not supported                            |
+| [ECMWF open data](https://www.ecmwf.int/en/forecasts/datasets/open-data)                                    | 0.25 degrees          | 13 pressure levels  | 3 hours             | Last days from ECMWF, few years from AWS |
+| [GDAS1](https://www.ready.noaa.gov/gdas1.php)                                                               | 1 degree              | 23 pressure levels  | 3 hours             | Since December 2004                      |
+| [ICON-D2](https://www.dwd.de/EN/ourservices/nwp_forecast_data/nwp_forecast_data.html)                       | Native                | 65 model levels     | 15 minutes          | Not supported                            |
 
 ## Processing steps
 
