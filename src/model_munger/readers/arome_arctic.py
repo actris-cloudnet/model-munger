@@ -30,7 +30,7 @@ sfc_keymap = {
 ml_keymap = {
     "specific_humidity_ml": "q",
     "mass_fraction_of_cloud_condensed_water_in_air_ml": "qc",
-    "mass_fraction_of_cloud_ice_in_air": "qi",
+    "mass_fraction_of_cloud_ice_in_air_ml": "qi",
     "mass_fraction_of_snow_in_air_ml": "qs",
     "mass_fraction_of_rain_in_air_ml": "qr",
     "mass_fraction_of_graupel_in_air_ml": "qg",
