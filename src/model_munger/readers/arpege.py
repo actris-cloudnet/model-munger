@@ -1,4 +1,5 @@
 import datetime
+from collections.abc import Callable
 from os import PathLike
 from pathlib import Path
 
@@ -55,6 +56,7 @@ def _read_lfa2nc(
     file: str | PathLike,
     location: Location,
     model_type: ModelType,
+    get_horizontal_resolution: Callable[[datetime.date], float],
 ) -> Model:
     with netCDF4.Dataset(file) as nc:
         data: dict = {}
@@ -76,6 +78,7 @@ def _read_lfa2nc(
         data["height"] = data["height"] - ground[:, np.newaxis]
 
         time = nc["time"]
+        n_time = len(time)
         if time.units == "seconds":
             date_int = nc["date"][0]
             year, month_day = divmod(date_int, 10000)
@@ -95,7 +98,12 @@ def _read_lfa2nc(
         data["longitude"] = nc["lon"][0]
         units["longitude"] = _normalize_units(nc["lon"].units)
 
-        data["soil_depth"] = np.tile(data["soil_depth"], (len(data["time"]), 1))
+        data["horizontal_resolution"] = np.repeat(
+            get_horizontal_resolution(data["time"][0].date()), n_time
+        )
+        units["horizontal_resolution"] = "km"
+
+        data["soil_depth"] = np.tile(data["soil_depth"], (n_time, 1))
 
         history = [
             f"{nc.NetCdf_creation_date} - {Path(file).name} created by {nc.creator}",
@@ -106,7 +114,14 @@ def _read_lfa2nc(
 
 def read_arpege(file: str | PathLike, location: Location) -> Model:
     """Read ARPEGE netCDF generated using lfa2nc."""
-    return _read_lfa2nc(file, location, ARPEGE)
+    return _read_lfa2nc(file, location, ARPEGE, _get_horizontal_resolution)
+
+
+def _get_horizontal_resolution(date: datetime.date) -> float:
+    # https://polarmet.osu.edu/WAMC_2024/pdf/WAMC_2.12.pdf
+    # April 2015: T1198 L105 c2.2 (7.5 km over Europe)
+    # July 2019: T1798 L105 c2.2 (5 km over Europe)
+    return 5.0 if date >= datetime.date(2019, 7, 1) else 7.5
 
 
 def _normalize_units(units: str) -> str:

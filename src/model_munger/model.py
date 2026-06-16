@@ -198,6 +198,16 @@ class Model:
                 calendar=ncvar.calendar,
             )
 
+            fixed_location = True
+            coord_keys = ("latitude", "longitude", "horizontal_resolution")
+            for key in coord_keys:
+                if key not in self.data:
+                    continue
+                values = self.data[key]
+                if np.any(values != values[0]):
+                    fixed_location = False
+                    break
+
             for key, meta in ATTRIBUTES.items():
                 if key not in self.data:
                     continue
@@ -207,7 +217,7 @@ class Model:
                 fill_value = netCDF4.default_fillvals[data_type]
                 values = self.data[key]
                 dimensions = self.dimensions.get(key, meta.dimensions)
-                if key in ("latitude", "longitude") and np.all(values == values[0]):
+                if key in coord_keys and fixed_location:
                     values = values[0]
                     dimensions = ()
                 ncvar = nc.createVariable(

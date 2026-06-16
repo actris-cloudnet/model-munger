@@ -90,6 +90,7 @@ def read_arome_arctic(
             sources[dst] = src
 
         time = nc_sfc["time"]
+        n_time = len(time)
         data["time"] = num2pydate(time[:], units=time.units)
 
         lat = nc_sfc["latitude"]
@@ -147,6 +148,9 @@ def read_arome_arctic(
 
         data["model_level"] = np.arange(z.shape[1], 0, -1, dtype=np.int16)
         units["model_level"] = "1"
+
+        data["horizontal_resolution"] = np.repeat(2.5, n_time)
+        units["horizontal_resolution"] = "km"
 
         history.extend(nc_ml.history.splitlines())
 

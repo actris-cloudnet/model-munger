@@ -167,6 +167,9 @@ def read_icon_d2(file: str | PathLike, station_name: str, location: Location) ->
         units["longitude"] = "degree_east"
         sources["longitude"] = "CLON"
 
+        data["horizontal_resolution"] = np.repeat(2.2, n_time)
+        units["horizontal_resolution"] = "km"
+
         data["sfc_height"] = np.repeat(sfc_height, n_time)
         units["sfc_height"] = "m"
         sources["sfc_height"] = "HSURF"
