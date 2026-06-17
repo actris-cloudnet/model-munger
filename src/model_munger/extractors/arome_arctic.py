@@ -1,10 +1,13 @@
 import datetime
 import os.path
+import sys
+import time
 from collections.abc import Iterable
 from typing import Literal
 
 import netCDF4
 import numpy as np
+import numpy.typing as npt
 from numpy import ma
 
 from model_munger.extract import FixedLocation, MobileLocation, RawModel
@@ -41,15 +44,15 @@ def download_arome_arctic(
     lats = np.array(lat_list)
     lons = np.array(lon_list)
 
-    data = {}
+    data: dict[str, npt.NDArray | list[npt.NDArray]] = {}
     dimensions = {}
     attributes = {}
     history = None
     in_path = _generate_arome_arctic_url(date, run, kind)
 
     with netCDF4.Dataset(in_path) as nc_in:
-        grid_x = nc_in["x"][:]
-        grid_y = nc_in["y"][:]
+        grid_x = _get_data(nc_in["x"])
+        grid_y = _get_data(nc_in["y"])
         res = ma.median(np.diff(grid_x))
         min_x = np.min(grid_x) - res / 2
         max_x = np.max(grid_x) + res / 2
@@ -96,11 +99,11 @@ def download_arome_arctic(
             var_in = nc_in[key]
             if "x" in var_in.dimensions or "y" in var_in.dimensions:
                 data[key] = [
-                    var_in[_make_index(var_in.dimensions, y=y, x=x)]
+                    _get_data(var_in, _make_index(var_in.dimensions, y=y, x=x))
                     for y, x in zip(closest_y, closest_x, strict=True)
                 ]
             else:
-                data[key] = var_in[:]
+                data[key] = _get_data(var_in)
             dimensions[key] = var_in.dimensions
             attributes[key] = {
                 attr: var_in.getncattr(attr)
@@ -133,3 +136,32 @@ def _generate_arome_arctic_url(date: datetime.date, run: int, kind: str) -> str:
 
 def _make_index(dims: list[str], **kwargs: int) -> tuple[int | slice, ...]:
     return tuple(kwargs.get(key, slice(None)) for key in dims)
+
+
+def _get_data(
+    ncvar: netCDF4.Variable,
+    ind: slice | tuple[int | slice, ...] = slice(None),
+    retries: int = 10,
+) -> npt.NDArray:
+    """Get data with retry.
+
+    Args:
+        ncvar: NetCDF variable.
+        ind: Index to data.
+        retries: Maximum number of retry attempts on failure.
+
+    Returns:
+        Data at given index.
+    """
+    attempt = 0
+    while True:
+        try:
+            return ncvar[ind]
+        except RuntimeError as err:
+            print(
+                f"Failed to get data on attempt {attempt + 1}: {err}", file=sys.stderr
+            )
+            if attempt >= retries:
+                raise
+            time.sleep(2**attempt)
+        attempt += 1
