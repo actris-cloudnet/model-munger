@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import email.utils
 import logging
@@ -44,9 +45,23 @@ def download_file(
             out.unlink(missing_ok=True)
             if attempt >= retries:
                 raise
-            time.sleep(2**attempt)
+            delay = 2**attempt
+            if "Retry-After" in e.response.headers:
+                with contextlib.suppress(ValueError, TypeError):
+                    delay = _parse_retry_after(e.response.headers["Retry-After"])
+            delay = max(1, min(3600, delay))
+            time.sleep(delay)
         attempt += 1
     return out
+
+
+def _parse_retry_after(header: str) -> float:
+    try:
+        return int(header)
+    except ValueError:
+        dt = email.utils.parsedate_to_datetime(header)
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        return (dt - now).total_seconds()
 
 
 def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
