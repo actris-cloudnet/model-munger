@@ -169,11 +169,11 @@ class Model:
             nc.source = self.type.full_name
             nc.model_munger_version = __version__
             now = datetime.datetime.now(datetime.timezone.utc)
-            history = [
+            history_line = (
                 f"{now:%Y-%m-%d %H:%M:%S} +00:00 - "
-                f"Cloudnet model file generated using model-munger v{__version__}",
-                *self.history,
-            ]
+                f"Cloudnet model file generated using model-munger v{__version__}"
+            )
+            history = [history_line, *self.history]
             nc.history = "\n".join(history)
 
             n_time, n_level = self.data["height"].shape
