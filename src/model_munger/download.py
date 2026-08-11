@@ -1,11 +1,14 @@
 import datetime
 import email.utils
+import logging
 import os
 import sys
 import time
 from pathlib import Path
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 def download_file(
@@ -35,9 +38,8 @@ def download_file(
             _download_file(url, out, revalidate=revalidate)
             break
         except requests.HTTPError as e:
-            print(
-                f"Failed to download file on attempt {attempt + 1}: {e}",
-                file=sys.stderr,
+            logger.warning(
+                "Failed to download file on attempt %d/%d: %s", attempt + 1, retries, e
             )
             out.unlink(missing_ok=True)
             if attempt >= retries:
@@ -52,7 +54,7 @@ def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
         pending_output = False
         print_progress = sys.stdout.isatty()
         if not print_progress:
-            print(f"Download {url}", file=sys.stderr)
+            logger.info("Download %s", url)
         headers = {}
         if out.exists():
             if not revalidate:
@@ -79,7 +81,7 @@ def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
                         f.write(data)
                         if print_progress:
                             percent = round(100 * dl_bytes / total_bytes_int)
-                            print(
+                            print(  # noqa: T201
                                 f"\r[{percent:3}%] {url}",
                                 end="",
                                 file=sys.stderr,
@@ -98,4 +100,4 @@ def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
                     pass
     finally:
         if pending_output:
-            print(file=sys.stderr)
+            print(file=sys.stderr)  # noqa: T201

@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import logging
 import sys
 from pathlib import Path
 
@@ -18,9 +19,16 @@ from model_munger.readers.ecmwf_open import ECMWF_OPEN
 from model_munger.readers.gdas1 import GDAS1
 
 SITE_TYPES = ("cloudnet", "campaign", "weather-radar", "model")
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s:%(levelname)s:%(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-d",
@@ -172,7 +180,7 @@ def main() -> None:
                 for raw in extractor.extract_profiles():
                     outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
                     outpath = output_dir / outfile
-                    print(outpath)
+                    logger.info("Saving %s", outpath)
                     write_netcdf(raw, outpath)
                     if args.submit:
                         submit_file(outpath, raw.location, date, raw.model)
@@ -211,7 +219,7 @@ def main() -> None:
                 for raw in extractor.extract_profiles():
                     outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
                     outpath = output_dir / outfile
-                    print(outpath)
+                    logger.info("Saving %s", outpath)
                     write_netcdf(raw, outpath)
                     if args.submit:
                         submit_file(outpath, raw.location, date, raw.model)
@@ -225,7 +233,7 @@ def main() -> None:
                             f"{date_id}_{raw.location.id}_{raw.model.id}_{kind}.nc"
                         )
                         outpath = output_dir / outfile
-                        print(outpath)
+                        logger.info("Saving %s", outpath)
                         write_netcdf(raw, outpath)
                         if args.submit:
                             submit_file(outpath, raw.location, date, raw.model)

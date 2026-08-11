@@ -62,7 +62,7 @@ changelog = "CHANGELOG.md"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN401", "C9", "COM812", "D1", "DTZ", "PLR", "PTH", "S324", "T201"]
+ignore = ["ANN401", "C9", "COM812", "D1", "DTZ", "PLR", "PTH", "S324"]
 
 [tool.ruff.lint.flake8-pytest-style]
 parametrize-names-type = "csv"

@@ -1,6 +1,6 @@
 import datetime
+import logging
 import os.path
-import sys
 import time
 from collections.abc import Iterable
 from typing import Literal
@@ -14,6 +14,8 @@ from model_munger.extract import FixedLocation, MobileLocation, RawModel
 from model_munger.readers.arome_arctic import AROME_ARCTIC
 from model_munger.utils import LCC
 from model_munger.version import __version__ as model_munger_version
+
+logger = logging.getLogger(__name__)
 
 
 def download_arome_arctic(
@@ -49,6 +51,7 @@ def download_arome_arctic(
     attributes = {}
     history = None
     in_path = _generate_arome_arctic_url(date, run, kind)
+    logger.info("Opening %s", in_path)
 
     with netCDF4.Dataset(in_path) as nc_in:
         grid_x = _get_data(nc_in["x"])
@@ -78,8 +81,9 @@ def download_arome_arctic(
         site_y = site_y[is_valid]
         site_x = site_x[is_valid]
 
+        logger.info("Locations:")
         for loc in locs:
-            print(f"{loc.name}: {loc.latitude}, {loc.longitude}")
+            logger.info("- %s: %s, %s", loc.name, loc.latitude, loc.longitude)
 
         closest_y = np.argmin(np.abs(grid_y[:, np.newaxis] - site_y), axis=0)
         closest_x = np.argmin(np.abs(grid_x[:, np.newaxis] - site_x), axis=0)
@@ -95,7 +99,7 @@ def download_arome_arctic(
 
         n_var = len(nc_in.variables)
         for i, key in enumerate(nc_in.variables):
-            print(f"{i + 1}/{n_var}", key)
+            logger.info("%d/%d %s", i + 1, n_var, key)
             var_in = nc_in[key]
             if "x" in var_in.dimensions or "y" in var_in.dimensions:
                 data[key] = [
@@ -158,8 +162,8 @@ def _get_data(
         try:
             return ncvar[ind]
         except RuntimeError as err:
-            print(
-                f"Failed to get data on attempt {attempt + 1}: {err}", file=sys.stderr
+            logger.warning(
+                "Failed to get data on attempt %d/%d: %s", attempt + 1, retries, err
             )
             if attempt >= retries:
                 raise

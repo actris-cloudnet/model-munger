@@ -1,5 +1,6 @@
 import datetime
 import hashlib
+import logging
 import os
 from pathlib import Path
 
@@ -16,6 +17,7 @@ AUTH = (
 )
 
 api_client = APIClient(BASE_URL + "/api")
+logger = logging.getLogger(__name__)
 
 
 def submit_file(
@@ -24,7 +26,7 @@ def submit_file(
     date: datetime.date,
     model: ModelType,
 ) -> None:
-    print(f"Submit {filename.name}")
+    logger.info("Submit %s", filename.name)
     md5_hash = hashlib.md5()
     with open(filename, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
