@@ -128,9 +128,9 @@ def _download_metno(
         )
         history = "\n".join(history_lines)
 
-        n_var = len(nc_in.variables)
-        for i, key in enumerate(nc_in.variables):
-            logger.info("%d/%d %s", i + 1, n_var, key)
+        keys = [v for v in nc_in.variables if not v.startswith("SFX_")]
+        for i, key in enumerate(keys):
+            logger.info("%d/%d %s", i + 1, len(keys), key)
             var_in = nc_in[key]
             if "x" in var_in.dimensions or "y" in var_in.dimensions:
                 data[key] = [
