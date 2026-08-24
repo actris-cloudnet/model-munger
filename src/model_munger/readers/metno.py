@@ -69,6 +69,31 @@ def read_arome_arctic(
     Returns:
         Model data.
     """
+    return _read_metno(sfc_file, ml_file, location, AROME_ARCTIC)
+
+
+def read_meps(
+    sfc_file: str | PathLike, ml_file: str | PathLike, location: Location
+) -> Model:
+    """Read MEPS netCDF subset.
+
+    Args:
+        sfc_file: Path to surface data.
+        ml_file: Path to model level data.
+        location: Location metadata.
+
+    Returns:
+        Model data.
+    """
+    return _read_metno(sfc_file, ml_file, location, MEPS)
+
+
+def _read_metno(
+    sfc_file: str | PathLike,
+    ml_file: str | PathLike,
+    location: Location,
+    model_type: ModelType,
+) -> Model:
     data = {}
     units = {}
     sources = {}
@@ -155,7 +180,7 @@ def read_arome_arctic(
         history.extend(nc_ml.history.splitlines())
 
     return Model(
-        AROME_ARCTIC,
+        model_type,
         location,
         data,
         units,
@@ -188,4 +213,11 @@ AROME_ARCTIC = ModelType(
     id="arome-arctic",
     full_name="AROME-Arctic",
     short_name="AROME-Arctic",
+)
+
+
+MEPS = ModelType(
+    id="meps",
+    full_name="MetCoOp Ensemble Prediction System (MEPS)",
+    short_name="MEPS",
 )

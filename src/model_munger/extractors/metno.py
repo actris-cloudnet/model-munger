@@ -11,7 +11,8 @@ import numpy.typing as npt
 from numpy import ma
 
 from model_munger.extract import FixedLocation, MobileLocation, RawModel
-from model_munger.readers.arome_arctic import AROME_ARCTIC
+from model_munger.model import ModelType
+from model_munger.readers.metno import AROME_ARCTIC, MEPS
 from model_munger.utils import LCC
 from model_munger.version import __version__ as model_munger_version
 
@@ -32,6 +33,37 @@ def download_arome_arctic(
         kind: Level type (sfc, pl, ml or hl)
         locations: Locations to extract
     """
+    url = (
+        "https://thredds.met.no/thredds/dodsC/aromearcticarchive/"
+        f"{date:%Y/%m/%d}/arome_arctic_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
+    )
+    return _download_metno(url, locations, AROME_ARCTIC)
+
+
+def download_meps(
+    date: datetime.date,
+    run: Literal[0, 3, 6, 9, 12, 15, 18, 21],
+    kind: Literal["sfc", "pl", "ml", "hl"],
+    locations: Iterable[FixedLocation | MobileLocation],
+) -> list[RawModel]:
+    """Extract MEPS data from MET Norway THREDDS server.
+
+    Args:
+        date: Forecast date (UTC)
+        run: Forecast run (0, 3, 6, 9, 12, 15 or 18 UTC hour)
+        kind: Level type (sfc, pl, ml or hl)
+        locations: Locations to extract
+    """
+    url = (
+        "https://thredds.met.no/thredds/dodsC/meps25epsarchive/"
+        f"{date:%Y/%m/%d}/meps_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
+    )
+    return _download_metno(url, locations, MEPS)
+
+
+def _download_metno(
+    url: str, locations: Iterable[FixedLocation | MobileLocation], model_type: ModelType
+) -> list[RawModel]:
     loc_list = []
     lat_list = []
     lon_list = []
@@ -50,10 +82,9 @@ def download_arome_arctic(
     dimensions = {}
     attributes = {}
     history = None
-    in_path = _generate_arome_arctic_url(date, run, kind)
-    logger.info("Opening %s", in_path)
+    logger.info("Opening %s", url)
 
-    with netCDF4.Dataset(in_path) as nc_in:
+    with netCDF4.Dataset(url) as nc_in:
         grid_x = _get_data(nc_in["x"])
         grid_y = _get_data(nc_in["y"])
         res = ma.median(np.diff(grid_x))
@@ -89,7 +120,7 @@ def download_arome_arctic(
         closest_x = np.argmin(np.abs(grid_x[:, np.newaxis] - site_x), axis=0)
 
         now = datetime.datetime.now(datetime.timezone.utc)
-        filename = os.path.basename(in_path)
+        filename = os.path.basename(url)
         history_lines = getattr(nc_in, "history", "").splitlines()
         history_lines.append(
             f"{now:%Y-%m-%d %H:%M:%S} +00:00 - Extracted from {filename} "
@@ -118,7 +149,7 @@ def download_arome_arctic(
     return [
         RawModel(
             location=loc,
-            model=AROME_ARCTIC,
+            model=model_type,
             data={
                 key: value[i] if isinstance(value, list) else value
                 for key, value in data.items()
@@ -132,10 +163,6 @@ def download_arome_arctic(
         )
         for i, loc in enumerate(locs)
     ]
-
-
-def _generate_arome_arctic_url(date: datetime.date, run: int, kind: str) -> str:
-    return f"https://thredds.met.no/thredds/dodsC/aromearcticarchive/{date:%Y/%m/%d}/arome_arctic_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
 
 
 def _make_index(dims: list[str], **kwargs: int) -> tuple[int | slice, ...]:

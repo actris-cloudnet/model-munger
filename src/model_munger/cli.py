@@ -12,9 +12,9 @@ from model_munger.extract import (
     MobileLocation,
     write_netcdf,
 )
-from model_munger.extractors.arome_arctic import download_arome_arctic
 from model_munger.extractors.ecmwf_open import generate_ecmwf_url, read_ecmwf
 from model_munger.extractors.gdas1 import generate_gdas1_url, read_gdas1
+from model_munger.extractors.metno import download_arome_arctic, download_meps
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
 from model_munger.readers.gdas1 import GDAS1
 
@@ -68,7 +68,7 @@ def main() -> None:
     parser.add_argument(
         "-m",
         "--model",
-        choices=["ecmwf-open", "gdas1", "arome-arctic"],
+        choices=["ecmwf-open", "gdas1", "arome-arctic", "meps"],
         help="Which model to download and process.",
         required=True,
     )
@@ -227,10 +227,24 @@ def main() -> None:
                         outpath.unlink()
             elif args.model == "arome-arctic":
                 date_id = f"{date:%Y%m%d}{run:02}0000"
-                for kind in ("sfc", "ml"):
-                    for raw in download_arome_arctic(date, run, kind, locations):
+                for kind_arar in ("sfc", "ml"):
+                    for raw in download_arome_arctic(date, run, kind_arar, locations):
                         outfile = (
-                            f"{date_id}_{raw.location.id}_{raw.model.id}_{kind}.nc"
+                            f"{date_id}_{raw.location.id}_{raw.model.id}_{kind_arar}.nc"
+                        )
+                        outpath = output_dir / outfile
+                        logger.info("Saving %s", outpath)
+                        write_netcdf(raw, outpath)
+                        if args.submit:
+                            submit_file(outpath, raw.location, date, raw.model)
+                        if args.no_keep:
+                            outpath.unlink()
+            elif args.model == "meps":
+                date_id = f"{date:%Y%m%d}{run:02}0000"
+                for kind_meps in ("sfc", "ml"):
+                    for raw in download_meps(date, run, kind_meps, locations):
+                        outfile = (
+                            f"{date_id}_{raw.location.id}_{raw.model.id}_{kind_meps}.nc"
                         )
                         outpath = output_dir / outfile
                         logger.info("Saving %s", outpath)

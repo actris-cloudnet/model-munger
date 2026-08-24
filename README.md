@@ -16,6 +16,7 @@ output netCDF files.
 | [ECMWF open data](https://www.ecmwf.int/en/forecasts/datasets/open-data)                                    | 0.25 degrees          | 13 pressure levels  | 3 hours             | Last days from ECMWF, few years from AWS |
 | [GDAS1](https://www.ready.noaa.gov/gdas1.php)                                                               | 1 degree              | 23 pressure levels  | 3 hours             | Since December 2004                      |
 | [ICON-D2](https://www.dwd.de/EN/ourservices/nwp_forecast_data/nwp_forecast_data.html)                       | Native                | 65 model levels     | 15 minutes          | Not supported                            |
+| [MEPS](https://www.met.no/en/projects/metcoop)                                                              | Native                | 65 model levels     | 1 hour              | Since 2016                               |
 
 ## Processing steps
 
