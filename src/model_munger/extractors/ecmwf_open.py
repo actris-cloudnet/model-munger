@@ -7,6 +7,7 @@ from typing import Any, Literal
 
 import numpy as np
 import pygrib
+import requests
 from atmoslib.constants import HPA_TO_PA
 
 from model_munger.grid import RegularGrid
@@ -15,6 +16,8 @@ from model_munger.level import Level, LevelType
 SOURCES = {
     "ecmwf": "https://data.ecmwf.int/forecasts",
     "aws": "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com",
+    "google": "https://storage.googleapis.com/ecmwf-open-data",
+    "azure": "https://ai4edataeuwest.blob.core.windows.net/ecmwf",
 }
 _unsupported_levtypes: set[str] = set()
 
@@ -48,7 +51,15 @@ def generate_ecmwf_url(
         raise ValueError(msg)
     base_url = SOURCES[source]
     filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
-    return f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
+    url = f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
+    if source == "azure":
+        res = requests.get(
+            "https://planetarycomputer.microsoft.com/api/sas/v1/token/ecmwf-forecast",
+            timeout=10,
+        )
+        token = res.json()["token"]
+        url += "?" + token
+    return url
 
 
 def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:

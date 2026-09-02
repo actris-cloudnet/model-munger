@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import time
+import urllib.parse
 from pathlib import Path
 
 import requests
@@ -31,7 +32,7 @@ def download_file(
     Raises:
         requests.HTTPError: If the download fails after all retries.
     """
-    filename = url.rsplit("/", maxsplit=1)[-1]
+    filename = urllib.parse.urlsplit(url).path.rsplit("/", maxsplit=1)[-1]
     out = outdir / filename
     attempt = 0
     while True:

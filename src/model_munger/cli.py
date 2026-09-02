@@ -74,7 +74,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--source",
-        choices=["ecmwf", "noaa", "aws"],
+        choices=["ecmwf", "noaa", "aws", "google", "azure"],
         help="Where to download data from.",
     )
     parser.add_argument(
