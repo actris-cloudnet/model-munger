@@ -225,6 +225,13 @@ class LCC:
         y = self.rho0 - rho * np.cos(theta)
         return y, x
 
+    def inverse(self, x, y):
+        rho = np.sign(self.n) * np.sqrt(x**2 + (self.rho0 - y) ** 2)
+        theta = np.arctan2(x, self.rho0 - y)
+        lat = 2 * np.arctan((self.R * self.F / rho) ** (1 / self.n)) - np.pi / 2
+        lon = theta / self.n + np.deg2rad(self.lambda0)
+        return np.rad2deg(lat), np.rad2deg(lon)
+
     @overload
     def theta(self, lon: float) -> Any: ...
     @overload
