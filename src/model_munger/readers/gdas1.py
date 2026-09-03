@@ -146,7 +146,7 @@ def _calc_q(
     """
     t = data[t_key]
     p = data[p_key]
-    rh = data[rh_key]
+    rh = data[rh_key] / 100
 
     # The thresholds are publicly documented but the exact method of blending is
     # not. Let's assume quadratic interpolation used by ECMWF.
