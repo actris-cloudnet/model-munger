@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.3 – 2026-09-04
+
+- Fix surface specific humidity calculation in GDAS1
+- Round mixing ratios to zero below a minimum value
+- Calculate `ql` and remove `qc` from MET Norway models
+- Support `--steps` argument in MET Norway extraction
+
 ## 0.5.2 – 2026-09-03
 
 - Fix specific humidity calculation in GDAS1
