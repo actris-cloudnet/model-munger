@@ -24,6 +24,7 @@ def download_arome_arctic(
     run: Literal[0, 3, 6, 9, 12, 15, 18, 21],
     kind: Literal["sfc", "pl", "ml", "hl"],
     locations: Iterable[FixedLocation | MobileLocation],
+    steps: int | None = None,
 ) -> list[RawModel]:
     """Extract AROME-Arctic data from MET Norway THREDDS server.
 
@@ -32,12 +33,13 @@ def download_arome_arctic(
         run: Forecast run (0, 3, 6, 9, 12, 15 or 18 UTC hour)
         kind: Level type (sfc, pl, ml or hl)
         locations: Locations to extract
+        steps: Time steps to extract (h, defaults to all)
     """
     url = (
         "https://thredds.met.no/thredds/dodsC/aromearcticarchive/"
         f"{date:%Y/%m/%d}/arome_arctic_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
     )
-    return _download_metno(url, locations, AROME_ARCTIC)
+    return _download_metno(url, steps, locations, AROME_ARCTIC)
 
 
 def download_meps(
@@ -45,6 +47,7 @@ def download_meps(
     run: Literal[0, 3, 6, 9, 12, 15, 18, 21],
     kind: Literal["sfc", "pl", "ml", "hl"],
     locations: Iterable[FixedLocation | MobileLocation],
+    steps: int | None = None,
 ) -> list[RawModel]:
     """Extract MEPS data from MET Norway THREDDS server.
 
@@ -53,16 +56,20 @@ def download_meps(
         run: Forecast run (0, 3, 6, 9, 12, 15 or 18 UTC hour)
         kind: Level type (sfc, pl, ml or hl)
         locations: Locations to extract
+        steps: Time steps to extract (h, defaults to all)
     """
     url = (
         "https://thredds.met.no/thredds/dodsC/meps25epsarchive/"
         f"{date:%Y/%m/%d}/meps_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
     )
-    return _download_metno(url, locations, MEPS)
+    return _download_metno(url, steps, locations, MEPS)
 
 
 def _download_metno(
-    url: str, locations: Iterable[FixedLocation | MobileLocation], model_type: ModelType
+    url: str,
+    steps: int | None,
+    locations: Iterable[FixedLocation | MobileLocation],
+    model_type: ModelType,
 ) -> list[RawModel]:
     loc_list = []
     lat_list = []
@@ -128,17 +135,20 @@ def _download_metno(
         )
         history = "\n".join(history_lines)
 
+        time = slice(0, steps + 1) if steps is not None else slice(None)
         keys = [v for v in nc_in.variables if not v.startswith("SFX_")]
         for i, key in enumerate(keys):
             logger.info("%d/%d %s", i + 1, len(keys), key)
             var_in = nc_in[key]
             if "x" in var_in.dimensions or "y" in var_in.dimensions:
                 data[key] = [
-                    _get_data(var_in, _make_index(var_in.dimensions, y=y, x=x))
+                    _get_data(
+                        var_in, _make_index(var_in.dimensions, time=time, y=y, x=x)
+                    )
                     for y, x in zip(closest_y, closest_x, strict=True)
                 ]
             else:
-                data[key] = _get_data(var_in)
+                data[key] = _get_data(var_in, _make_index(var_in.dimensions, time=time))
             dimensions[key] = var_in.dimensions
             attributes[key] = {
                 attr: var_in.getncattr(attr)
@@ -165,7 +175,7 @@ def _download_metno(
     ]
 
 
-def _make_index(dims: list[str], **kwargs: int) -> tuple[int | slice, ...]:
+def _make_index(dims: list[str], **kwargs: int | slice) -> tuple[int | slice, ...]:
     return tuple(kwargs.get(key, slice(None)) for key in dims)
 
 

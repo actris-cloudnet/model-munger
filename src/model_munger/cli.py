@@ -56,8 +56,7 @@ def main() -> None:
     parser.add_argument(
         "--steps",
         type=int,
-        default=90,
-        help="Maximum time step. Default is 90 hours.",
+        help="Maximum time step to download.",
     )
     parser.add_argument(
         "-s",
@@ -141,6 +140,8 @@ def main() -> None:
                         ),
                     )
                 else:
+                    if args.steps is None:
+                        parser.error("specify --steps for mobile locations")
                     locs = []
                     for day_offset in range(-1, args.steps // 24 + 2):
                         loc_date = date + datetime.timedelta(days=day_offset)
@@ -158,7 +159,8 @@ def main() -> None:
             if args.model == "ecmwf-open":
                 model = ECMWF_OPEN
                 history = f"Model run {run:02} UTC extracted from ECMWF open data"
-                steps = list(range(0, args.steps + 1, 3))
+                max_step = args.steps if args.steps is not None else 90
+                steps = list(range(0, max_step + 1, 3))
                 start_time = datetime.datetime.combine(
                     date,
                     datetime.time(run),
@@ -228,7 +230,9 @@ def main() -> None:
             elif args.model == "arome-arctic":
                 date_id = f"{date:%Y%m%d}{run:02}0000"
                 for kind_arar in ("sfc", "ml"):
-                    for raw in download_arome_arctic(date, run, kind_arar, locations):
+                    for raw in download_arome_arctic(
+                        date, run, kind_arar, locations, args.steps
+                    ):
                         outfile = (
                             f"{date_id}_{raw.location.id}_{raw.model.id}_{kind_arar}.nc"
                         )
@@ -242,7 +246,9 @@ def main() -> None:
             elif args.model == "meps":
                 date_id = f"{date:%Y%m%d}{run:02}0000"
                 for kind_meps in ("sfc", "ml"):
-                    for raw in download_meps(date, run, kind_meps, locations):
+                    for raw in download_meps(
+                        date, run, kind_meps, locations, args.steps
+                    ):
                         outfile = (
                             f"{date_id}_{raw.location.id}_{raw.model.id}_{kind_meps}.nc"
                         )
