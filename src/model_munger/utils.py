@@ -4,7 +4,7 @@ from typing import Any, Final, overload
 import atmoslib
 import numpy as np
 import numpy.typing as npt
-from atmoslib.constants import RS, G
+from atmoslib.constants import HPA_TO_PA, RS, G
 from numpy import ma
 from scipy.spatial import geometric_slerp
 
@@ -240,3 +240,35 @@ class LCC:
             Grid convergence angle (radians).
         """
         return self.n * np.deg2rad(lon - self.lambda0)
+
+
+def convert_units(
+    key: str,
+    values: npt.NDArray,
+    units_from: str,
+    units_to: str,
+) -> npt.NDArray:
+    """Convert array values from one unit to another.
+
+    Args:
+        key: Name of the variable being converted.
+        values: Array of values to convert.
+        units_from: Source units .
+        units_to: Target units.
+
+    Returns:
+        Array of converted values.
+
+    Raises:
+        ValueError: If the unit conversion is not supported.
+    """
+    if units_from == units_to:
+        return values
+    if units_from == "hPa" and units_to == "Pa":
+        return values * HPA_TO_PA
+    if units_from == "hPa s-1" and units_to == "Pa s-1":
+        return values * HPA_TO_PA
+    if units_from == "%" and units_to == "1":
+        return values / 100
+    msg = f"Cannot convert '{key}' from '{units_from}' to '{units_to}'"
+    raise ValueError(msg)

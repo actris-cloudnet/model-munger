@@ -9,13 +9,14 @@ import atmoslib
 import netCDF4
 import numpy as np
 import numpy.typing as npt
-from atmoslib.constants import HPA_TO_PA, MW_RATIO, G
+from atmoslib.constants import MW_RATIO, G
 from cftime import date2num
 
 from model_munger.metadata import ATTRIBUTES
 from model_munger.utils import (
     calc_saturation_vapor_pressure,
     calc_vertical_wind,
+    convert_units,
 )
 from model_munger.version import __version__
 
@@ -62,7 +63,7 @@ class Model:
                 continue
             value = raw_value
             if key != "time" and units and units[key] != ATTRIBUTES[key].units:
-                value = _convert_units(key, value, units[key], ATTRIBUTES[key].units)
+                value = convert_units(key, value, units[key], ATTRIBUTES[key].units)
                 if key in self.sources:
                     self.sources[key] = (
                         self.sources[key]
@@ -242,19 +243,3 @@ class Model:
                 if key in self.sources:
                     ncvar.source = self.sources[key]
                 ncvar[:] = values
-
-
-def _convert_units(
-    key: str,
-    values: npt.NDArray,
-    units_from: str,
-    units_to: str,
-) -> npt.NDArray:
-    if units_from == "hPa" and units_to == "Pa":
-        return values * HPA_TO_PA
-    if units_from == "hPa s-1" and units_to == "Pa s-1":
-        return values * HPA_TO_PA
-    if units_from == "%" and units_to == "1":
-        return values / 100
-    msg = f"Cannot convert '{key}' from '{units_from}' to '{units_to}'"
-    raise ValueError(msg)

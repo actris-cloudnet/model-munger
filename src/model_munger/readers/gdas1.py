@@ -7,7 +7,7 @@ from atmoslib.constants import MW_RATIO
 from cftime import num2pydate
 
 from model_munger.model import Location, Model, ModelType
-from model_munger.utils import calc_saturation_vapor_pressure
+from model_munger.utils import calc_saturation_vapor_pressure, convert_units
 
 keymap = {
     "PRSS": "sfc_pressure",
@@ -144,9 +144,9 @@ def _calc_q(
         Cai, J. (2019). Humidity Measures.
         https://cran.r-project.org/web/packages/humidity/vignettes/humidity-measures.html
     """
-    t = data[t_key]
-    p = data[p_key]
-    rh = data[rh_key] / 100
+    t = convert_units(t_key, data[t_key], units[t_key], "K")
+    p = convert_units(p_key, data[p_key], units[p_key], "Pa")
+    rh = convert_units(rh_key, data[rh_key], units[rh_key], "1")
 
     # The thresholds are publicly documented but the exact method of blending is
     # not. Let's assume quadratic interpolation used by ECMWF.
