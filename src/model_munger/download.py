@@ -10,6 +10,8 @@ from pathlib import Path
 
 import requests
 
+from model_munger.extractors.ecmwf_open import SOURCES
+
 logger = logging.getLogger(__name__)
 
 
@@ -77,7 +79,8 @@ def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
                 return
             mtime = os.path.getmtime(out)
             headers["If-Modified-Since"] = email.utils.formatdate(mtime, usegmt=True)
-        with requests.get(url, headers=headers, stream=True, timeout=60) as res:
+        full_url = _append_sas_token(url) if url.startswith(SOURCES["azure"]) else url
+        with requests.get(full_url, headers=headers, stream=True, timeout=60) as res:
             res.raise_for_status()
             # GDAS1 redirects missing files to a page that returns 200.
             if res.url.endswith("/notfound.php"):
@@ -117,3 +120,12 @@ def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
     finally:
         if pending_output:
             print(file=sys.stderr)  # noqa: T201
+
+
+def _append_sas_token(url: str) -> str:
+    res = requests.get(
+        "https://planetarycomputer.microsoft.com/api/sas/v1/token/ecmwf-forecast",
+        timeout=10,
+    )
+    token = res.json()["token"]
+    return url + "?" + token
