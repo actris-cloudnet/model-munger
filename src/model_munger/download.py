@@ -46,7 +46,7 @@ def download_file(
                 "Failed to download file on attempt %d/%d: %s", attempt + 1, retries, e
             )
             out.unlink(missing_ok=True)
-            if attempt >= retries:
+            if attempt >= retries - 1:
                 raise
             delay = 2**attempt
             if "Retry-After" in e.response.headers:
