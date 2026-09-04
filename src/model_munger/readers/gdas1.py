@@ -100,7 +100,13 @@ def read_gdas1(file: str | PathLike, location: Location) -> Model:
 
         _calc_q(data, units, comments, "q", "temperature", "pressure", "rh")
         _calc_q(
-            data, units, comments, "sfc_q_2m", "sfc_temp", "sfc_pressure", "sfc_rh_2m"
+            data,
+            units,
+            comments,
+            "sfc_q_2m",
+            "sfc_temp_2m",
+            "sfc_pressure",
+            "sfc_rh_2m",
         )
 
         nctime = nc["time"]

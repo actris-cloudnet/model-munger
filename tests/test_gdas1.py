@@ -62,12 +62,12 @@ def test_read_gdas1_specific_humidity() -> None:
     assert "q" in model.data
     assert "sfc_q_2m" in model.data
     assert_allclose(model.data["q"][0, 0], 0.0014348316, rtol=1e-6)
-    assert_allclose(model.data["sfc_q_2m"][0], 0.0033800671, rtol=1e-6)
+    assert_allclose(model.data["sfc_q_2m"][0], 0.0016438484, rtol=1e-6)
     assert "q" in model.comments
     assert "sfc_q_2m" in model.comments
     assert "Calculated from temperature, pressure and rh" in model.comments["q"]
     assert (
-        "Calculated from sfc_temp, sfc_pressure and sfc_rh_2m"
+        "Calculated from sfc_temp_2m, sfc_pressure and sfc_rh_2m"
         in model.comments["sfc_q_2m"]
     )
     assert "PRSS converted from hPa to Pa" in model.sources.get("sfc_pressure", "")
