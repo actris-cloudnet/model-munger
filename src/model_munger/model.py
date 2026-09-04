@@ -36,6 +36,18 @@ class Location:
     name: str
 
 
+MIN_VALUES = {
+    "cloud_fraction": 1e-4,
+    "ql": 1e-10,
+    "qc": 1e-10,
+    "qi": 1e-10,
+    "qs": 1e-10,
+    "qr": 1e-10,
+    "qg": 1e-10,
+    "qh": 1e-10,
+}
+
+
 class Model:
     def __init__(
         self,
@@ -92,9 +104,10 @@ class Model:
             )
         self._calculate_rh("q", "rh", "pressure", "temperature")
         self._calculate_rh("sfc_q_2m", "sfc_rh_2m", "sfc_pressure", "sfc_temp_2m")
-        if "cloud_fraction" in self.data:
-            frac = self.data["cloud_fraction"]
-            frac[frac < 1e-4] = 0
+        for key, min_value in MIN_VALUES.items():
+            if key in self.data:
+                values = self.data[key]
+                values[values < min_value] = 0
         if "sfc_height" not in self.data and "sfc_geopotential" in self.data:
             geopotential_height = self.data["sfc_geopotential"] / G
             self.data["sfc_height"] = atmoslib.geometric_height(geopotential_height)
