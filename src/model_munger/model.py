@@ -39,7 +39,6 @@ class Location:
 MIN_VALUES = {
     "cloud_fraction": 1e-4,
     "ql": 1e-10,
-    "qc": 1e-10,
     "qi": 1e-10,
     "qs": 1e-10,
     "qr": 1e-10,

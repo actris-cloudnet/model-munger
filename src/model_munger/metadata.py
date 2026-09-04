@@ -122,12 +122,6 @@ ATTRIBUTES = {
         standard_name="mass_fraction_of_cloud_liquid_water_in_air",
         dimensions=("time", "level"),
     ),
-    "qc": Metadata(
-        units="1",
-        long_name="Gridbox-mean condensed water mixing ratio",
-        standard_name="mass_fraction_of_cloud_condensed_water_in_air",
-        dimensions=("time", "level"),
-    ),
     "qi": Metadata(
         units="1",
         long_name="Gridbox-mean ice water mixing ratio",

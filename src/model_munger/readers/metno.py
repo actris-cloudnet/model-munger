@@ -29,7 +29,6 @@ sfc_keymap = {
 
 ml_keymap = {
     "specific_humidity_ml": "q",
-    "mass_fraction_of_cloud_condensed_water_in_air_ml": "qc",
     "mass_fraction_of_cloud_ice_in_air_ml": "qi",
     "mass_fraction_of_snow_in_air_ml": "qs",
     "mass_fraction_of_rain_in_air_ml": "qr",
@@ -154,6 +153,12 @@ def _read_metno(
             data[ukey], data[vkey] = _rotate_clockwise(data[ukey], data[vkey], alpha)
             sources[ukey] += f" rotated by {alpha_deg} deg"
             sources[vkey] += f" rotated by {alpha_deg} deg"
+
+        key_qc = "mass_fraction_of_cloud_condensed_water_in_air_ml"
+        key_qi = "mass_fraction_of_cloud_ice_in_air_ml"
+        data["ql"] = nc_ml[key_qc][:, ::-1] - nc_ml[key_qi][:, ::-1]
+        units["ql"] = "1"
+        sources["ql"] = f"Calculated from {key_qc}\nand {key_qi}"
 
         p, z = calc_sigma_height(
             nc_ml["ap"][:],
