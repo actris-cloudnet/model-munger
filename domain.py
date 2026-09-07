@@ -56,6 +56,59 @@ if sys.argv[1] == "icon-d2":
         points.append(find_closest(min_lat, yi))
     print(json.dumps([[round(lat, 3), round(lon, 3)] for lat, lon in points]))
     exit()
+if sys.argv[1] == "arome":
+    grbs = pygrib.open("arome.grib")
+    grb = next(grbs)
+
+    is_valid = np.ravel(~np.ma.getmaskarray(grb.values))
+    lat = grb.latitudes[is_valid]
+    lon = grb.longitudes[is_valid]
+
+    min_lat = lat[0]
+    max_lat = lat[0]
+    min_lon = lon[0]
+    max_lon = lon[0]
+    for i in range(1, len(lat)):
+        min_lat = min(min_lat, lat[i])
+        max_lat = max(max_lat, lat[i])
+        min_lon = min(min_lon, lon[i])
+        max_lon = max(max_lon, lon[i])
+    min_lat = min_lat - 5
+    max_lat = max_lat + 5
+    min_lon = min_lon - 5
+    max_lon = max_lon + 5
+
+    def find_closest(my_lat, my_lon):
+        closest_dist = None
+        closest_lat = None
+        closest_lon = None
+        for i in range(len(lat)):
+            dist = (lat[i] - my_lat) ** 2 + (lon[i] - my_lon) ** 2
+            if closest_dist is None or dist < closest_dist:
+                closest_lat = lat[i]
+                closest_lon = lon[i]
+                closest_dist = dist
+        return closest_lat, closest_lon
+
+    points = []
+    nx = 2
+    ny = 10
+    for xi in np.linspace(min_lat, max_lat, nx):
+        points.append(find_closest(xi, min_lon))
+    for yi in np.linspace(min_lon, max_lon, ny):
+        points.append(find_closest(max_lat, yi))
+    for xi in np.linspace(max_lat, min_lat, nx):
+        points.append(find_closest(xi, max_lon))
+    for yi in np.linspace(max_lon, min_lon, ny):
+        points.append(find_closest(min_lat, yi))
+
+    points_unique = []
+    for lat, lon in points:
+        p = round(lat, 3), round(lon, 3)
+        if p not in points_unique:
+            points_unique.append(p)
+    print(json.dumps(points_unique))
+    exit()
 if sys.argv[1] == "arome-arctic":
     url = "https://thredds.met.no/thredds/dodsC/aromearcticarchive/2026/01/01/arome_arctic_det_sfc_20260101T00Z.ncml"
 elif sys.argv[1] == "meps":
