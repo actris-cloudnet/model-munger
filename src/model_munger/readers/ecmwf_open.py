@@ -59,6 +59,12 @@ keymap = {
     "vsw": "soil_moisture",
     "w": "omega",
     "z": "sfc_geopotential",
+    # GFS
+    "pl_clwmr": "ql",
+    "pl_snmr": "qs",
+    "pl_icmr": "qi",
+    "pl_rwmr": "qr",
+    # "pl_tcc": "cloud_fraction",
 }
 
 RH_COMMENT = """For temperatures over 0°C (273.15 K) it is calculated for
@@ -67,7 +73,9 @@ saturation over ice. Between -23°C and 0°C this parameter is calculated by
 interpolating between the ice and water values using a quadratic function."""
 
 
-def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
+def read_ecmwf_open(
+    file: str | PathLike, location: Location, model: ModelType
+) -> Model:
     """Read ECMWF open data netCDF generated using model-munger."""
     with netCDF4.Dataset(file) as nc:
         data = {}
@@ -104,10 +112,27 @@ def read_ecmwf_open(file: str | PathLike, location: Location) -> Model:
         units["height"] = "m"
         sources["height"] = f"ECMWF parameter {ghvar.param_id} converted from gpm to m"
 
+        # # Eq. 4, Xu & Randall (1996)
+        # es = atmoslib.saturation_vapor_pressure(data["temperature"])
+        # qcon = data["ql"] + data["qi"]
+        # qsat = MW_RATIO * es / (data["pressure"] - es)
+        # p = 0.25
+        # y = 0.49
+        # a0 = 100
+        # rh = data["rh"]/100
+        # data["cloud_fraction"] = rh ** p * (1 - np.exp(-a0 * qcon / ((1 - rh) * qsat) ** y))
+        # units["cloud_fraction"] = "1"
+
+        rh0 = 0.8
+        rh = data["rh"] / 100
+        data["cloud_fraction"] = np.maximum(0, np.minimum(1, (rh - rh0) / (1 - rh0)))
+        # data["cloud_fraction"] = (data["ql"]+data["qi"] > 1e-10).filled(0).astype(np.float32)
+        units["cloud_fraction"] = "1"
+
         history = nc.history.splitlines()
 
         return Model(
-            ECMWF_OPEN,
+            model,
             location,
             data,
             units,

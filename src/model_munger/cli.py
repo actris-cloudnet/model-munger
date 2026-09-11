@@ -18,9 +18,11 @@ from model_munger.extractors.ecmwf_open import (
     read_ecmwf_index,
 )
 from model_munger.extractors.gdas1 import generate_gdas1_url, read_gdas1
+from model_munger.extractors.gfs import generate_gfs_url
 from model_munger.extractors.metno import download_arome_arctic, download_meps
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
 from model_munger.readers.gdas1 import GDAS1
+from model_munger.readers.gfs import GFS
 from model_munger.utils import format_list
 
 SITE_TYPES = ("cloudnet", "campaign", "weather-radar", "model")
@@ -79,7 +81,7 @@ def main() -> None:
     parser.add_argument(
         "-m",
         "--model",
-        choices=["ecmwf-open", "gdas1", "arome-arctic", "meps"],
+        choices=["ecmwf-open", "gfs", "gdas1", "arome-arctic", "meps"],
         help="Which model to download and process.",
         required=True,
     )
@@ -299,6 +301,39 @@ def main() -> None:
                             submit_file(outpath, raw.location, date, raw.model)
                         if args.no_keep:
                             outpath.unlink()
+            elif args.model == "gfs":
+                model = GFS
+                history = f"Model run {run:02} UTC extracted"
+                max_step = args.steps if args.steps is not None else 24
+                steps = list(range(max_step + 1))
+                start_time = datetime.datetime.combine(
+                    date,
+                    datetime.time(run),
+                    datetime.timezone.utc,
+                )
+                time = [start_time + datetime.timedelta(hours=step) for step in steps]
+                extractor = Extractor(time, locations, model, history)
+
+                date_id = f"{date:%Y%m%d}{run:02}0000"
+                for step in steps:
+                    url = generate_gfs_url(date, run, step, "0p25", "pgrb2")
+                    path = download_file(url, download_dir)
+                    for level in read_ecmwf(
+                        path, start_time, datetime.timedelta(hours=step)
+                    ):
+                        extractor.add_level(level)
+                    if args.no_keep:
+                        path.unlink()
+
+                for raw in extractor.extract_profiles():
+                    outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
+                    outpath = output_dir / outfile
+                    logger.info("Saving %s", outpath)
+                    write_netcdf(raw, outpath)
+                    if args.submit:
+                        submit_file(outpath, raw.location, date, raw.model)
+                    if args.no_keep:
+                        outpath.unlink()
             else:
                 raise NotImplementedError
 

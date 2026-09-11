@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 import os.path
-import re
 from collections.abc import Iterable
 from typing import Any, Literal
 
@@ -61,22 +60,9 @@ def read_ecmwf_index(filename: str | os.PathLike) -> list[dict]:
         return [json.loads(line) for line in f]
 
 
-def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:
-    basename = os.path.basename(filename)
-    m = re.match(r"^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)-(\d+)h-", basename)
-    if m is None:
-        msg = f"Invalid filename: {basename}"
-        raise ValueError(msg)
-    start_time = datetime.datetime(
-        year=int(m[1]),
-        month=int(m[2]),
-        day=int(m[3]),
-        hour=int(m[4]),
-        minute=int(m[5]),
-        second=int(m[6]),
-        tzinfo=datetime.timezone.utc,
-    )
-    forecast_time = datetime.timedelta(hours=int(m[7]))
+def read_ecmwf(
+    filename: str | os.PathLike, start_time: datetime.datetime, forecast_time: int
+) -> Iterable[Level]:
     time = start_time + forecast_time
     with pygrib.open(filename) as grbs:
         for grb in grbs:
