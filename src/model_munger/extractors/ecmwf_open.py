@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import os.path
 import re
@@ -30,6 +31,7 @@ def generate_ecmwf_url(
     run: Literal[0, 6, 12, 18],
     step: int,
     source: str,
+    extension: Literal["grib2", "index"],
 ) -> str:
     """Generate URL for ECMWF high-resolution forecast model (open data subset).
 
@@ -38,6 +40,7 @@ def generate_ecmwf_url(
         run: Forecast run (0, 6, 12 or 18 UTC hour)
         step: Forecast step (0, 1, 2, ...)
         source: Location from which to download files ("ecmwf" or "aws").
+        extension: File extension ("grib2" or "index")
 
     Returns:
         URL for GRIB files
@@ -49,8 +52,13 @@ def generate_ecmwf_url(
         msg = f"Invalid source: {source}"
         raise ValueError(msg)
     base_url = SOURCES[source]
-    filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.grib2"
+    filename = f"{date_str}{run_str}0000-{step}h-{stream}-fc.{extension}"
     return f"{base_url}/{date_str}/{run_str}z/ifs/0p25/{stream}/{filename}"
+
+
+def read_ecmwf_index(filename: str | os.PathLike) -> list[dict]:
+    with open(filename) as f:
+        return [json.loads(line) for line in f]
 
 
 def read_ecmwf(filename: str | os.PathLike) -> Iterable[Level]:

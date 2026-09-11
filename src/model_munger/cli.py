@@ -12,11 +12,16 @@ from model_munger.extract import (
     MobileLocation,
     write_netcdf,
 )
-from model_munger.extractors.ecmwf_open import generate_ecmwf_url, read_ecmwf
+from model_munger.extractors.ecmwf_open import (
+    generate_ecmwf_url,
+    read_ecmwf,
+    read_ecmwf_index,
+)
 from model_munger.extractors.gdas1 import generate_gdas1_url, read_gdas1
 from model_munger.extractors.metno import download_arome_arctic, download_meps
 from model_munger.readers.ecmwf_open import ECMWF_OPEN
 from model_munger.readers.gdas1 import GDAS1
+from model_munger.utils import format_list
 
 SITE_TYPES = ("cloudnet", "campaign", "weather-radar", "model")
 logger = logging.getLogger(__name__)
@@ -57,6 +62,13 @@ def main() -> None:
         "--steps",
         type=int,
         help="Maximum time step to download.",
+    )
+    parser.add_argument(
+        "-p",
+        "--params",
+        type=lambda x: x.split(","),
+        help="Comma-separated list of parameters (e.g. t,2t in ecmwf-open) "
+        "to download. Defaults to all.",
     )
     parser.add_argument(
         "-s",
@@ -172,12 +184,38 @@ def main() -> None:
                 date_id = f"{date:%Y%m%d}{run:02}0000"
                 source = args.source or "ecmwf"
                 for step in steps:
-                    url = generate_ecmwf_url(date, run, step, source)
-                    path = download_file(url, download_dir)
-                    for level in read_ecmwf(path):
-                        extractor.add_level(level)
-                    if args.no_keep:
-                        path.unlink()
+                    url = generate_ecmwf_url(date, run, step, source, "grib2")
+                    if args.params:
+                        index_url = generate_ecmwf_url(date, run, step, source, "index")
+                        index_path = download_file(index_url, download_dir)
+                        index = read_ecmwf_index(index_path)
+                        unknown_params = set(args.params)
+                        for item in index:
+                            if item["param"] not in args.params:
+                                continue
+                            if item["param"] in unknown_params:
+                                unknown_params.remove(item["param"])
+                            rng = (item["_offset"], item["_offset"] + item["_length"])
+                            path = download_file(url, download_dir, bytes_range=rng)
+                            for level in read_ecmwf(path):
+                                extractor.add_level(level)
+                            if args.no_keep:
+                                path.unlink()
+                        if unknown_params:
+                            logger.warning(
+                                "%s %s not found in %s",
+                                "Parameter"
+                                if len(unknown_params) == 1
+                                else "Parameters",
+                                format_list([f"'{param}'" for param in unknown_params]),
+                                url,
+                            )
+                    else:
+                        path = download_file(url, download_dir)
+                        for level in read_ecmwf(path):
+                            extractor.add_level(level)
+                        if args.no_keep:
+                            path.unlink()
 
                 for raw in extractor.extract_profiles():
                     outfile = f"{date_id}_{raw.location.id}_{raw.model.id}.nc"
@@ -189,6 +227,8 @@ def main() -> None:
                     if args.no_keep:
                         outpath.unlink()
             elif args.model == "gdas1":
+                if args.params:
+                    parser.error("--params not supported with --model gdas1")
                 model = GDAS1
                 source = args.source or "noaa"
                 url, revalidate = generate_gdas1_url(date, source)
@@ -231,7 +271,7 @@ def main() -> None:
                 date_id = f"{date:%Y%m%d}{run:02}0000"
                 for kind_arar in ("sfc", "ml"):
                     for raw in download_arome_arctic(
-                        date, run, kind_arar, locations, args.steps
+                        date, run, kind_arar, locations, args.steps, args.params
                     ):
                         outfile = (
                             f"{date_id}_{raw.location.id}_{raw.model.id}_{kind_arar}.nc"
@@ -247,7 +287,7 @@ def main() -> None:
                 date_id = f"{date:%Y%m%d}{run:02}0000"
                 for kind_meps in ("sfc", "ml"):
                     for raw in download_meps(
-                        date, run, kind_meps, locations, args.steps
+                        date, run, kind_meps, locations, args.steps, args.params
                     ):
                         outfile = (
                             f"{date_id}_{raw.location.id}_{raw.model.id}_{kind_meps}.nc"

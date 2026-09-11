@@ -272,3 +272,11 @@ def convert_units(
         return values / 100
     msg = f"Cannot convert '{key}' from '{units_from}' to '{units_to}'"
     raise ValueError(msg)
+
+
+def format_list(items: list[str]) -> str:
+    if len(items) <= 1:
+        return "".join(items)
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + ", and " + items[-1]

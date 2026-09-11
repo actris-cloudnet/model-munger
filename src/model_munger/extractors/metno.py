@@ -13,7 +13,7 @@ from numpy import ma
 from model_munger.extract import FixedLocation, MobileLocation, RawModel
 from model_munger.model import ModelType
 from model_munger.readers.metno import AROME_ARCTIC, MEPS
-from model_munger.utils import LCC
+from model_munger.utils import LCC, format_list
 from model_munger.version import __version__ as model_munger_version
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ def download_arome_arctic(
     kind: Literal["sfc", "pl", "ml", "hl"],
     locations: Iterable[FixedLocation | MobileLocation],
     steps: int | None = None,
+    params: list[str] | None = None,
 ) -> list[RawModel]:
     """Extract AROME-Arctic data from MET Norway THREDDS server.
 
@@ -34,12 +35,13 @@ def download_arome_arctic(
         kind: Level type (sfc, pl, ml or hl)
         locations: Locations to extract
         steps: Time steps to extract (h, defaults to all)
+        params: Parameters to extract (e.g. air_temperature_2m, defaults to all)
     """
     url = (
         "https://thredds.met.no/thredds/dodsC/aromearcticarchive/"
         f"{date:%Y/%m/%d}/arome_arctic_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
     )
-    return _download_metno(url, steps, locations, AROME_ARCTIC)
+    return _download_metno(url, steps, params, locations, AROME_ARCTIC)
 
 
 def download_meps(
@@ -48,6 +50,7 @@ def download_meps(
     kind: Literal["sfc", "pl", "ml", "hl"],
     locations: Iterable[FixedLocation | MobileLocation],
     steps: int | None = None,
+    params: list[str] | None = None,
 ) -> list[RawModel]:
     """Extract MEPS data from MET Norway THREDDS server.
 
@@ -57,17 +60,19 @@ def download_meps(
         kind: Level type (sfc, pl, ml or hl)
         locations: Locations to extract
         steps: Time steps to extract (h, defaults to all)
+        params: Parameters to extract (e.g. air_temperature_2m, defaults to all)
     """
     url = (
         "https://thredds.met.no/thredds/dodsC/meps25epsarchive/"
         f"{date:%Y/%m/%d}/meps_det_{kind}_{date:%Y%m%d}T{run:02}Z.ncml"
     )
-    return _download_metno(url, steps, locations, MEPS)
+    return _download_metno(url, steps, params, locations, MEPS)
 
 
 def _download_metno(
     url: str,
     steps: int | None,
+    params: list[str] | None,
     locations: Iterable[FixedLocation | MobileLocation],
     model_type: ModelType,
 ) -> list[RawModel]:
@@ -136,7 +141,18 @@ def _download_metno(
         history = "\n".join(history_lines)
 
         time = slice(0, steps + 1) if steps is not None else slice(None)
-        keys = [v for v in nc_in.variables if not v.startswith("SFX_")]
+        keys = list(nc_in.variables)
+        if params is None:
+            keys = [key for key in keys if not key.startswith("SFX_")]
+        else:
+            if unknown_params := set(params) - set(keys):
+                logger.warning(
+                    "%s %s not found in %s",
+                    "Parameter" if len(unknown_params) == 1 else "Parameters",
+                    format_list([f"'{param}'" for param in unknown_params]),
+                    filename,
+                )
+            keys = [key for key in keys if key in params]
         for i, key in enumerate(keys):
             logger.info("%d/%d %s", i + 1, len(keys), key)
             var_in = nc_in[key]

@@ -21,6 +21,7 @@ def download_file(
     retries: int = 10,
     *,
     revalidate: bool = False,
+    bytes_range: tuple[int, int] | None = None,
 ) -> Path:
     """Downloads a file from a URL with cache and retry logic.
 
@@ -30,16 +31,19 @@ def download_file(
         retries: Maximum number of retry attempts on failure.
         revalidate: If True, the cached file is revalidated based on
             modification time. Defaults to False.
+        bytes_range: Download bytes from given range.
 
     Raises:
         requests.HTTPError: If the download fails after all retries.
     """
     filename = urllib.parse.urlsplit(url).path.rsplit("/", maxsplit=1)[-1]
+    if bytes_range is not None:
+        filename += f".{bytes_range[0]}-{bytes_range[1]}"
     out = outdir / filename
     attempt = 0
     while True:
         try:
-            _download_file(url, out, revalidate=revalidate)
+            _download_file(url, out, revalidate=revalidate, bytes_range=bytes_range)
             break
         except requests.HTTPError as e:
             logger.warning(
@@ -67,18 +71,25 @@ def _parse_retry_after(header: str) -> float:
         return (dt - now).total_seconds()
 
 
-def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
+def _download_file(
+    url: str, out: Path, *, revalidate: bool, bytes_range: tuple[int, int] | None = None
+) -> None:
     try:
         pending_output = False
         print_progress = sys.stdout.isatty()
+        display_url = url
+        if bytes_range is not None:
+            display_url += f" ({bytes_range[0]}-{bytes_range[1]})"
         if not print_progress:
-            logger.info("Download %s", url)
+            logger.info("Download %s", display_url)
         headers = {}
         if out.exists():
             if not revalidate:
                 return
             mtime = os.path.getmtime(out)
             headers["If-Modified-Since"] = email.utils.formatdate(mtime, usegmt=True)
+        if bytes_range is not None:
+            headers["Range"] = f"bytes={bytes_range[0]}-{bytes_range[1]}"
         full_url = _append_sas_token(url) if url.startswith(SOURCES["azure"]) else url
         with requests.get(full_url, headers=headers, stream=True, timeout=60) as res:
             res.raise_for_status()
@@ -101,7 +112,7 @@ def _download_file(url: str, out: Path, *, revalidate: bool) -> None:
                         if print_progress:
                             percent = round(100 * dl_bytes / total_bytes_int)
                             print(  # noqa: T201
-                                f"\r[{percent:3}%] {url}",
+                                f"\r[{percent:3}%] {display_url}",
                                 end="",
                                 file=sys.stderr,
                                 flush=True,
