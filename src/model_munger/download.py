@@ -45,7 +45,7 @@ def download_file(
         try:
             _download_file(url, out, revalidate=revalidate, bytes_range=bytes_range)
             break
-        except requests.HTTPError as e:
+        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
             logger.warning(
                 "Failed to download file on attempt %d/%d: %s", attempt + 1, retries, e
             )
@@ -53,7 +53,10 @@ def download_file(
             if attempt >= retries - 1:
                 raise
             delay = 2**attempt
-            if "Retry-After" in e.response.headers:
+            if (
+                isinstance(e, requests.HTTPError)
+                and "Retry-After" in e.response.headers
+            ):
                 with contextlib.suppress(ValueError, TypeError):
                     delay = _parse_retry_after(e.response.headers["Retry-After"])
             delay = max(1, min(3600, delay))
