@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def download_file(
     url: str,
     outdir: Path,
-    retries: int = 10,
+    retries: int = 12,
     *,
     revalidate: bool = False,
     bytes_range: tuple[int, int] | None = None,
@@ -46,11 +46,14 @@ def download_file(
             _download_file(url, out, revalidate=revalidate, bytes_range=bytes_range)
             break
         except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as e:
-            logger.warning(
-                "Failed to download file on attempt %d/%d: %s", attempt + 1, retries, e
-            )
+            if attempt == 0:
+                logger.warning("Failed to download file on first try: %s", e)
+            else:
+                logger.warning(
+                    "Failed to download file on retry %d/%d: %s", attempt, retries, e
+                )
             out.unlink(missing_ok=True)
-            if attempt >= retries - 1:
+            if attempt >= retries:
                 raise
             delay = 2**attempt
             if (
