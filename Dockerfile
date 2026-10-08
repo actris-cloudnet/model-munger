@@ -1,4 +1,4 @@
-FROM python:3.10-bullseye AS base
+FROM python:3.14 AS base
 
 WORKDIR /app
 COPY pyproject.toml README.md /app
