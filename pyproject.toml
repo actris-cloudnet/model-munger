@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "model_munger"
 authors = [
-  {name = "Tuomas Siipola", email = "tuomas.siipola@fmi.fi"},
+  { name = "Tuomas Siipola", email = "tuomas.siipola@fmi.fi" },
 ]
 description = "Extract vertical profiles from NWP models and output netCDF files"
 readme = "README.md"
